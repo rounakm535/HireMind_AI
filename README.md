@@ -1,387 +1,444 @@
 # 🚀 HireMind AI – AI-Powered Resume Screening & Applicant Tracking System (ATS)
 
-> A production-grade AI-powered Applicant Tracking System (ATS) that automates resume screening, candidate ranking, skill gap analysis, interview preparation, and recruiter workflows using Large Language Models (LLMs).
+> A production-grade AI-powered Applicant Tracking System (ATS) that leverages Large Language Models (LLMs) to automate resume screening, candidate ranking, skill gap analysis, interview preparation, and recruiter workflows.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Status](https://img.shields.io/badge/Status-Under%20Development-orange)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
 ![React](https://img.shields.io/badge/React-TypeScript-61DAFB)
-![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
 ![Redis](https://img.shields.io/badge/Redis-Cache-red)
-![Qdrant](https://img.shields.io/badge/Qdrant-VectorDB-purple)
-![Gemini](https://img.shields.io/badge/Google-Gemini-orange)
+![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
-# 📖 Overview
+## 📌 Overview
 
-HireMind AI is an AI-first SaaS Applicant Tracking System designed to help recruiters and hiring managers automate the hiring process. Instead of manually reviewing hundreds of resumes, recruiters can upload job descriptions and candidate resumes to receive AI-powered insights including candidate rankings, skill gap analysis, resume summaries, interview questions, and semantic candidate search.
+HireMind AI is an AI-first Applicant Tracking System inspired by modern recruiting platforms like Greenhouse, Lever, and Ashby.
 
-The project follows production-grade software engineering practices with a scalable architecture, modular backend, AI orchestration using LangGraph, vector search with Qdrant, cloud storage on AWS S3, and containerized deployment using Docker.
+The goal is to eliminate manual resume screening by combining semantic search, Large Language Models, and production-grade backend engineering to help recruiters identify the best candidates in seconds.
 
----
-
-# ✨ Key Features
-
-## 🔐 Authentication & Authorization
-
-* JWT Authentication
-* Refresh Tokens
-* Role-Based Access Control (RBAC)
-* Password Reset
-* Email Verification
-* Secure Session Management
+This project is being built with scalability, maintainability, and cloud-native deployment in mind.
 
 ---
 
-## 💼 Job Management
+# ✨ Features
 
-* Create, update, archive, and delete job postings
-* Required & preferred skills
-* Experience and education requirements
-* Salary range
-* Employment type
-* Job status management
+### Authentication
 
----
+- JWT Authentication
+- Refresh Tokens
+- Role-Based Access Control (RBAC)
+- Password Reset
+- Email Verification
 
-## 📄 Resume Management
+### Job Management
 
-* Upload PDF and DOCX resumes
-* Bulk resume upload
-* Resume versioning
-* Resume parsing
-* Resume storage in AWS S3
-* Metadata extraction
+- Create/Edit/Delete Jobs
+- Publish & Archive Jobs
+- Required & Preferred Skills
+- Experience Requirements
+- Employment Type
 
----
+### Resume Management
 
-## 🤖 AI Resume Screening
+- Upload PDF/DOCX
+- Bulk Resume Upload
+- Resume Parsing
+- Resume Storage
+- Resume Metadata Extraction
 
-* Resume vs Job Description matching
-* Semantic similarity search
-* AI-generated match score
-* Candidate ranking
-* Skill gap analysis
-* Resume summaries
-* Strengths and weaknesses
-* Hiring recommendations
+### AI Resume Screening
 
----
+- Resume vs Job Description Matching
+- AI Match Score
+- Candidate Ranking
+- Skill Gap Analysis
+- Resume Summaries
+- Hiring Recommendations
 
-## 🧠 AI Recruiter Assistant
+### AI Recruiter Assistant
 
-Recruiters can ask natural language questions such as:
+Recruiters can ask:
 
-* Find Python developers with FastAPI experience
-* Show candidates with AWS certifications
-* Rank React developers with Docker experience
-* Compare the top 5 candidates
-* Generate interview questions for Candidate A
+- Find Python developers with FastAPI experience
+- Show candidates with Docker knowledge
+- Compare the top candidates
+- Generate interview questions
+- Search resumes using natural language
 
----
+### Dashboard
 
-## 📊 Analytics Dashboard
+- Active Jobs
+- Candidate Analytics
+- Hiring Funnel
+- Resume Upload Statistics
+- AI Match Insights
 
-* Active jobs
-* Resume uploads
-* Candidate pipeline
-* Average AI match score
-* Hiring funnel
-* Recruiter productivity
-* Top skills distribution
+### AI Email Generator
 
----
-
-## 📧 AI Email Generator
-
-Generate personalized:
-
-* Interview invitations
-* Shortlist emails
-* Rejection emails
-* Follow-up emails
-* Offer letters (template)
+- Interview Invitation
+- Shortlist Email
+- Rejection Email
+- Follow-up Email
+- Offer Letter Template
 
 ---
 
-# 🏗️ Tech Stack
+# 🏗 Tech Stack
 
 ## Frontend
 
-* React
-* TypeScript
-* Tailwind CSS
-* Redux Toolkit
-* React Router
-* Axios
+- React
+- TypeScript
+- Tailwind CSS
+- Redux Toolkit
+- React Router
+- Axios
 
 ## Backend
 
-* Python
-* FastAPI
-* SQLAlchemy
-* Alembic
-* Pydantic
+- Python
+- FastAPI
+- SQLAlchemy
+- Alembic
+- Pydantic
 
 ## Database
 
-* PostgreSQL
+- PostgreSQL
 
 ## Cache
 
-* Redis
+- Redis
 
 ## AI
 
-* Google Gemini
-* LangGraph
+- Google Gemini
+- LangGraph
 
 ## Vector Database
 
-* Qdrant
+- Qdrant
 
-## File Storage
+## Cloud Storage
 
-* AWS S3
+- AWS S3
 
 ## DevOps
 
-* Docker
-* Docker Compose
-* GitHub Actions
-* Nginx
+- Docker
+- Docker Compose
+- GitHub Actions
+- Nginx
 
 ## Deployment
 
-* AWS / GCP
+- AWS
+- Google Cloud Platform
 
 ---
 
-# 🏛️ High-Level Architecture
+# 🏛 High-Level Architecture
 
-```text
-                    React Frontend
-                           │
-                           ▼
-                    FastAPI Backend
-                           │
-     ┌───────────────┬───────────────┬───────────────┐
-     │               │               │               │
- PostgreSQL       Redis          Qdrant          AWS S3
-     │               │               │               │
-     └───────────────┴───────────────┴───────────────┘
-                           │
-                     LangGraph Engine
-                           │
-                     Google Gemini API
+```
+                React Frontend
+                       │
+                       ▼
+                FastAPI Backend
+                       │
+       ┌─────────┬──────────┬───────────┐
+       │         │          │           │
+ PostgreSQL   Redis     Qdrant      AWS S3
+       │         │          │
+       └─────────┴──────────┘
+               │
+          LangGraph
+               │
+        Google Gemini
 ```
 
 ---
 
-# 🧩 System Workflow
+# 🔄 Workflow
 
-1. Recruiter logs in.
-2. Creates a new Job Description.
-3. Uploads one or more resumes.
-4. Resumes are stored in AWS S3.
-5. Background workers parse resume content.
-6. Candidate information is stored in PostgreSQL.
-7. Embeddings are generated and stored in Qdrant.
-8. LangGraph orchestrates AI workflows.
-9. Gemini evaluates candidate-job fit.
-10. AI generates rankings, summaries, interview questions, and recommendations.
-11. Dashboard displays analytics and hiring insights.
-12. Recruiters interact with candidates using AI-powered search and chat.
+```
+Recruiter Login
+
+↓
+
+Create Job
+
+↓
+
+Upload Resume
+
+↓
+
+Resume Parsing
+
+↓
+
+Generate Embeddings
+
+↓
+
+Store in Qdrant
+
+↓
+
+AI Resume Matching
+
+↓
+
+Candidate Ranking
+
+↓
+
+Interview Question Generation
+
+↓
+
+Recruiter Dashboard
+
+↓
+
+AI Chat
+
+↓
+
+Email Generation
+```
 
 ---
 
-# 📂 Project Structure
+# 📁 Project Structure
 
-```text
+```
 hiremind-ai/
 
 ├── frontend/
-│   ├── src/
 │   ├── public/
-│   ├── components/
-│   ├── pages/
-│   ├── hooks/
-│   ├── services/
-│   ├── redux/
-│   └── utils/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── redux/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   ├── routes/
+│   │   └── utils/
 │
 ├── backend/
 │   ├── app/
 │   │   ├── api/
-│   │   ├── core/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── repositories/
-│   │   ├── services/
 │   │   ├── ai/
-│   │   ├── workers/
+│   │   ├── core/
+│   │   ├── db/
 │   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── repositories/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── workers/
 │   │   └── utils/
 │   │
 │   ├── tests/
 │   ├── alembic/
-│   └── Dockerfile/
+│   └── requirements.txt
 │
-├── docker/
 ├── docs/
-├── scripts/
-├── .github/workflows/
+├── docker/
+├── .github/
+│   └── workflows/
+│
 ├── docker-compose.yml
-└── README.md
+├── README.md
+└── LICENSE
 ```
 
 ---
 
-# 🛠️ Core AI Pipeline
+# 🤖 AI Pipeline
 
-```text
+```
 Resume Upload
-      │
-      ▼
+
+↓
+
 Resume Parsing
-      │
-      ▼
-Metadata Extraction
-      │
-      ▼
-Embedding Generation
-      │
-      ▼
-Qdrant Vector Storage
-      │
-      ▼
+
+↓
+
+Extract Candidate Information
+
+↓
+
+Generate Embeddings
+
+↓
+
+Store in Qdrant
+
+↓
+
 LangGraph Workflow
-      │
-      ▼
-Gemini Reasoning
-      │
-      ▼
+
+↓
+
+Google Gemini
+
+↓
+
+Candidate Analysis
+
+↓
+
 Match Score
-      │
-      ▼
+
+↓
+
 Skill Gap Analysis
-      │
-      ▼
+
+↓
+
 Interview Questions
-      │
-      ▼
-Recruiter Dashboard
+
+↓
+
+Dashboard
 ```
 
 ---
 
-# 🔒 Security Features
+# 🔒 Security
 
-* JWT Authentication
-* Refresh Tokens
-* RBAC
-* Password Hashing (bcrypt)
-* Input Validation
-* Rate Limiting
-* CORS Protection
-* Secure Environment Variables
-* Signed AWS S3 URLs
-* Audit Logging
-* Prompt Injection Mitigation
-* API Versioning
+- JWT Authentication
+- Refresh Tokens
+- Password Hashing
+- RBAC
+- Input Validation
+- API Rate Limiting
+- Secure Environment Variables
+- Signed S3 URLs
+- Audit Logging
+- Prompt Injection Protection
 
 ---
 
-# 🧪 Testing Strategy
+# 🧪 Testing
 
-* Unit Tests
-* Integration Tests
-* API Tests
-* AI Workflow Tests
-* Authentication Tests
-* End-to-End Tests
-* Load Testing
-* Security Testing
+- Unit Testing
+- Integration Testing
+- API Testing
+- AI Workflow Testing
+- Authentication Testing
+- End-to-End Testing
 
 ---
 
-# 🚀 Deployment
+# 🚀 Development Roadmap
 
-The application is containerized using Docker and can be deployed to AWS or GCP.
+- [x] Project Planning
+- [x] PRD
+- [x] System Architecture
+- [ ] Backend Setup
+- [ ] Frontend Setup
+- [ ] Authentication
+- [ ] Job Management
+- [ ] Resume Upload
+- [ ] Resume Parsing
+- [ ] AI Resume Matching
+- [ ] Candidate Ranking
+- [ ] AI Chat
+- [ ] Recruiter Dashboard
+- [ ] Email Generation
+- [ ] Dockerization
+- [ ] Deployment
+- [ ] CI/CD Pipeline
 
-Deployment components include:
+---
 
-* Docker Compose
-* Nginx Reverse Proxy
-* GitHub Actions CI/CD
-* PostgreSQL
-* Redis
-* Qdrant
-* AWS S3
-* HTTPS
+# ⚙️ Getting Started
+
+## Clone Repository
+
+```bash
+git clone https://github.com/rounakm535/hiremind-ai.git
+cd hiremind-ai
+```
+
+## Backend
+
+```bash
+cd backend
+
+python -m venv venv
+
+source venv/bin/activate
+# Windows
+venv\Scripts\activate
+
+pip install -r requirements.txt
+```
+
+Run FastAPI
+
+```bash
+uvicorn app.main:app --reload
+```
+
+---
+
+## Frontend
+
+```bash
+cd frontend
+
+npm install
+
+npm run dev
+```
+
+---
+
+## Docker
+
+```bash
+docker-compose up --build
+```
 
 ---
 
 # 📈 Future Enhancements
 
-* Multi-Tenant Organizations
-* Video Interview Analysis
-* AI Voice Interview Agent
-* Calendar Integration
-* LinkedIn Resume Import
-* GitHub Profile Analysis
-* Resume OCR
-* Candidate Recommendation Engine
-* Offer Prediction
-* Slack & Microsoft Teams Integration
-* Real-Time Notifications
-* Advanced Analytics Dashboard
+- Multi-Tenant Organizations
+- Resume OCR
+- Voice Interview Agent
+- GitHub Profile Analysis
+- LinkedIn Import
+- Calendar Integration
+- Slack Notifications
+- AI Hiring Copilot
+- Resume Recommendation Engine
+- Candidate Recommendation Engine
 
 ---
 
-# 📚 Engineering Practices
+# 💡 Engineering Practices
 
-* Clean Architecture
-* SOLID Principles
-* Repository Pattern
-* Dependency Injection
-* Background Task Processing
-* Async APIs
-* Structured Logging
-* OpenAPI Documentation
-* Environment-Based Configuration
-* Containerized Infrastructure
-* CI/CD Automation
-
----
-
-# 🎯 Resume Highlights
-
-This project demonstrates:
-
-* Production-grade SaaS Architecture
-* FastAPI Backend Development
-* React + TypeScript Frontend
-* AI Workflow Orchestration using LangGraph
-* LLM Integration with Google Gemini
-* Vector Search using Qdrant
-* JWT Authentication & RBAC
-* PostgreSQL Database Design
-* Redis Caching
-* Docker & Docker Compose
-* AWS S3 Integration
-* GitHub Actions CI/CD
-* RESTful API Design
-* Scalable System Design
-* Cloud-Native Deployment
-
----
-
-# 🤝 Contributing
-
-Contributions, feature requests, and bug reports are welcome. Please open an issue or submit a pull request.
+- Clean Architecture
+- SOLID Principles
+- Repository Pattern
+- Dependency Injection
+- Async FastAPI
+- Background Workers
+- Dockerized Infrastructure
+- RESTful APIs
+- Environment-Based Configuration
+- CI/CD
+- Cloud Native Deployment
 
 ---
 
@@ -395,10 +452,22 @@ This project is licensed under the MIT License.
 
 **Rounak Mishra**
 
-* AI Engineer | Backend Developer | Software Engineer
-* Python • FastAPI • React • LangGraph • Google Gemini • PostgreSQL • Docker • AWS
-* GitHub: https://github.com/rounakm535
+AI Engineer | Backend Developer | Software Engineer
 
-If you found this project useful, consider giving it a ⭐ on GitHub!
-#   H i r e M i n d _ A I  
- 
+**Tech Stack**
+
+- Python
+- FastAPI
+- React
+- PostgreSQL
+- Redis
+- LangGraph
+- Google Gemini
+- Docker
+- AWS
+
+GitHub: https://github.com/rounakm535
+
+---
+
+⭐ If you found this project interesting, don't forget to star the repository!
