@@ -1,0 +1,68 @@
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from app.exceptions.custom import HireMindException
+from app.middleware.auth import AuthenticationMiddleware
+
+# Import API Routers
+from app.api.v1.auth import router as auth_router
+from app.api.v1.users import router as users_router
+from app.api.v1.jobs import router as jobs_router
+from app.api.v1.candidates import router as candidates_router
+from app.api.v1.resumes import router as resumes_router
+from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.chat import router as chat_router
+from app.api.v1.emails import router as emails_router
+
+# Initialize FastAPI App
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    description="Backend API for HireMind AI Applicant Tracking System (ATS)",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Custom JWT Authentication state middleware
+app.add_middleware(AuthenticationMiddleware)
+
+
+# Global Exception Handler for application errors
+@app.exception_handler(HireMindException)
+async def hiremind_exception_handler(request: Request, exc: HireMindException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "message": exc.message,
+                "code": exc.code,
+                "details": exc.details,
+            }
+        },
+    )
+
+
+# Register API Route Routers
+app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(users_router, prefix=settings.API_V1_STR)
+app.include_router(jobs_router, prefix=settings.API_V1_STR)
+app.include_router(candidates_router, prefix=settings.API_V1_STR)
+app.include_router(resumes_router, prefix=settings.API_V1_STR)
+app.include_router(dashboard_router, prefix=settings.API_V1_STR)
+app.include_router(chat_router, prefix=settings.API_V1_STR)
+app.include_router(emails_router, prefix=settings.API_V1_STR)
+
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "healthy", "service": settings.PROJECT_NAME}
