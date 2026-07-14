@@ -8,6 +8,7 @@ from app.repositories.resume_repository import ResumeRepository
 from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.job_repository import JobRepository
 from app.exceptions.custom import EntityNotFoundError, FileStorageError
+from app.utils.pagination import PaginationParams
 
 
 class ResumeService:

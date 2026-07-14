@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "HireMind AI"
     API_V1_STR: str = "/api/v1"
 
-    # PostgreSQL Configuration
+    # Database Configuration
+    USE_POSTGRES: bool = False
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "postgres"
@@ -26,6 +27,8 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v:
             return v
         data = info.data
+        if not data.get("USE_POSTGRES"):
+            return "sqlite+aiosqlite:///./hiremind_db.sqlite"
         user = data.get("POSTGRES_USER")
         password = data.get("POSTGRES_PASSWORD")
         server = data.get("POSTGRES_SERVER")

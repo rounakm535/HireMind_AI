@@ -1,9 +1,11 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.exceptions.custom import HireMindException
 from app.middleware.auth import AuthenticationMiddleware
+from app.db.database import init_db
 
 # Import API Routers
 from app.api.v1.auth import router as auth_router
@@ -15,6 +17,15 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.emails import router as emails_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print(f"DATABASE_URL_LOG: Using database connection URL: {settings.DATABASE_URL}")
+    # Initialize SQLite or PostgreSQL tables automatically
+    await init_db()
+    yield
+
+
 # Initialize FastAPI App
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -22,6 +33,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS configuration
