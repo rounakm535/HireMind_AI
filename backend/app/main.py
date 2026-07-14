@@ -16,6 +16,7 @@ from app.api.v1.resumes import router as resumes_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.emails import router as emails_router
+from app.api.v1.ai import router as ai_router
 
 
 @asynccontextmanager
@@ -73,6 +74,7 @@ app.include_router(resumes_router, prefix=settings.API_V1_STR)
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)
 app.include_router(chat_router, prefix=settings.API_V1_STR)
 app.include_router(emails_router, prefix=settings.API_V1_STR)
+app.include_router(ai_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health", tags=["Health"])

@@ -1,0 +1,33 @@
+# Environments / Credentials
+.env
+.env.*
+backend/.env
+frontend/.env
+
+# Databases
+*.db
+*.sqlite
+backend/hiremind_db.sqlite
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+venv/
+.venv/
+env/
+
+# Node / frontend
+node_modules/
+dist/
+.vite
+.eslintcache
+
+# IDE / Editor config
+.vscode/
+.idea/
+*.suo
+*.swp

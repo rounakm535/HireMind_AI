@@ -1,7 +1,7 @@
 import uuid
 from typing import Any, Dict, List, Optional
-from app.ai.gemini_client import GeminiClient
-from app.ai.langgraph.graph import resume_screening_graph
+from app.ai.clients.gemini import GeminiClient
+from app.ai.graph.graph import resume_screening_graph
 from app.models.resume import Resume, InterviewQuestion
 from app.models.match import MatchScore, EmailLog
 from app.repositories.resume_repository import ResumeRepository

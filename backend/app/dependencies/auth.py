@@ -20,7 +20,7 @@ from app.services.user_service import UserService
 from app.services.job_service import JobService
 from app.services.candidate_service import CandidateService
 from app.services.resume_service import ResumeService
-from app.ai.gemini_client import GeminiClient
+from app.ai.clients.gemini import GeminiClient
 from app.exceptions.custom import InvalidTokenError, PermissionDeniedError, EntityNotFoundError
 
 # HTTP Bearer token extractor
