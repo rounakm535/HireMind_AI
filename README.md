@@ -344,7 +344,7 @@ Dashboard
 - [x] PRD
 - [x] System Architecture
 - [x] Backend Setup
-- [ ] Frontend Setup
+- [x] Frontend Setup
 - [ ] Authentication
 - [ ] Job Management
 - [ ] Resume Upload
