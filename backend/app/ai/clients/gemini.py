@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 import google.generativeai as genai
 from app.core.config import settings
 from app.exceptions.custom import AIServiceError
+from app.schemas.resume import ResumeParsingResult, ResumeMatchResult
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,67 @@ class GeminiClient:
         except Exception as e:
             logger.error(f"Gemini LLM call exception: {e}")
             raise AIServiceError(f"Google Gemini LLM call failed: {str(e)}")
+
+    async def parse_resume(self, raw_text: str) -> ResumeParsingResult:
+        from app.ai.parser.resume_parser import ResumeParser
+        parser = ResumeParser(self)
+        data = await parser.parse(raw_text)
+        return ResumeParsingResult(**data)
+
+    async def match_resume(
+        self, resume_text: str, job_title: str, job_requirements: str, job_description: str
+    ) -> ResumeMatchResult:
+        from app.ai.matcher.resume_matcher import ResumeMatcher
+        from app.ai.questions.question_generator import QuestionGenerator
+        matcher = ResumeMatcher(self)
+        
+        match_data = await matcher.match(
+            resume_text=resume_text,
+            job_title=job_title,
+            job_description=job_description,
+            job_requirements=job_requirements
+        )
+        
+        gap_data = await matcher.analyze_skill_gap(
+            candidate_skills=resume_text[:2000],
+            job_requirements=job_requirements
+        )
+        
+        q_gen = QuestionGenerator(self)
+        q_data = await q_gen.generate_questions(
+            job_description=job_description,
+            resume_text=resume_text,
+            skill_gaps=gap_data
+        )
+        
+        return ResumeMatchResult(
+            score=match_data.get("score", 50.0),
+            fit_explanation=match_data.get("fit_explanation", ""),
+            skill_gap=gap_data,
+            suggested_questions=q_data.get("questions", [])
+        )
+
+    async def generate_email(self, template_type: str, candidate_name: str, job_title: str, recruiter_name: str) -> Dict[str, str]:
+        from app.ai.emails.email_generator import EmailGenerator
+        email_gen = EmailGenerator(self)
+        return await email_gen.generate_email(
+            template_type=template_type,
+            candidate_name=candidate_name,
+            job_title=job_title,
+            recruiter_name=recruiter_name
+        )
+
+    async def chat_interaction(self, query: str, context: str) -> str:
+        prompt = f"""
+        You are HireMind AI Assistant. Help the recruiter answer their query using the context below.
+        Context:
+        {context}
+
+        Recruiter Query:
+        {query}
+        """
+        return await self.call_llm(prompt)
+
 
     def _mock_response(self, prompt: str) -> str:
         """Returns mock responses matching prompt context patterns for local developer runs."""
