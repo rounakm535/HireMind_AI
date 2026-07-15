@@ -14,7 +14,7 @@ class GeminiClient:
         self.is_configured = self.api_key and self.api_key != "dummy_gemini_api_key"
         if self.is_configured:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel("gemini-1.5-pro")
+            self.model = genai.GenerativeModel("gemini-1.5-flash")
         else:
             self.model = None
 
