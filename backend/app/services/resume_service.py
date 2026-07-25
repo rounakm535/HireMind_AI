@@ -1,3 +1,4 @@
+import os
 import uuid
 from typing import Any, Dict, List, Optional
 from app.ai.clients.gemini import GeminiClient
@@ -9,6 +10,7 @@ from app.repositories.candidate_repository import CandidateRepository
 from app.repositories.job_repository import JobRepository
 from app.exceptions.custom import EntityNotFoundError, FileStorageError
 from app.utils.pagination import PaginationParams
+from app.utils.text_extractor import extract_text
 
 
 class ResumeService:
@@ -24,6 +26,20 @@ class ResumeService:
         self.job_repo = job_repo
         self.gemini_client = gemini_client
 
+    async def _save_local(self, candidate_id: uuid.UUID, file_name: str, file_content: bytes) -> str:
+        uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "uploads")
+        candidate_dir = os.path.join(uploads_dir, str(candidate_id))
+        os.makedirs(candidate_dir, exist_ok=True)
+        
+        saved_filename = f"{uuid.uuid4()}-{file_name}"
+        file_path = os.path.join(candidate_dir, saved_filename)
+        try:
+            with open(file_path, "wb") as f:
+                f.write(file_content)
+        except Exception as e:
+            raise FileStorageError(f"Failed to save file locally: {e}")
+        return f"/uploads/{candidate_id}/{saved_filename}"
+
     async def upload_resume(
         self, candidate_id: uuid.UUID, file_name: str, file_content: bytes, organization_id: uuid.UUID
     ) -> Resume:
@@ -32,15 +48,31 @@ class ResumeService:
         if not candidate or candidate.organization_id != organization_id:
             raise EntityNotFoundError("Candidate not found in this organization.")
 
-        # S3 Interface upload stub
-        # In production, we would initialize boto3 client and upload file_content to S3 bucket.
-        # s3_client.upload_fileobj(io.BytesIO(file_content), settings.AWS_S3_BUCKET_NAME, s3_key)
-        s3_key = f"resumes/{candidate_id}/{uuid.uuid4()}-{file_name}"
-        mock_s3_url = f"https://s3.amazonaws.com/hiremind-resumes/{s3_key}"
+        # Upload to AWS S3 if credentials are set, otherwise use local storage
+        from app.core.config import settings
+        import boto3
+        
+        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+            try:
+                import io
+                s3_key = f"resumes/{candidate_id}/{uuid.uuid4()}-{file_name}"
+                s3_client = boto3.client(
+                    "s3",
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                    region_name=settings.AWS_REGION
+                )
+                s3_client.upload_fileobj(io.BytesIO(file_content), settings.AWS_S3_BUCKET_NAME, s3_key)
+                file_url = f"https://{settings.AWS_S3_BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
+            except Exception:
+                file_url = await self._save_local(candidate_id, file_name, file_content)
+        else:
+            file_url = await self._save_local(candidate_id, file_name, file_content)
 
-        # Mock text extraction (since we're only building interfaces here)
-        # In a real environment, we'd use PyPDF2 or pdfplumber to convert file_content to text
-        raw_text_extracted = f"Resume of {candidate.first_name} {candidate.last_name}.\nFile: {file_name}.\nSkill list: Python, FastAPI, PostgreSQL, Docker, AWS S3. Experience: Software Engineer with 3 years of building REST APIs."
+        # Extract raw text content from the uploaded resume file (PDF or DOCX)
+        raw_text_extracted = extract_text(file_name, file_content)
+        if not raw_text_extracted:
+            raw_text_extracted = f"Resume of {candidate.first_name} {candidate.last_name}.\nFile: {file_name}.\n"
 
         # Parse resume initially using Gemini
         parsed_result = await self.gemini_client.parse_resume(raw_text_extracted)
@@ -48,7 +80,7 @@ class ResumeService:
         # Create resume model instance
         resume = Resume(
             candidate_id=candidate_id,
-            file_url=mock_s3_url,
+            file_url=file_url,
             file_name=file_name,
             raw_text=raw_text_extracted,
             parsed_content=parsed_result.model_dump(),
@@ -172,21 +204,25 @@ class ResumeService:
         )
         return await self.resume_repo.create_email_log(email_log)
 
-    async def chat_helper(self, query: str, organization_id: uuid.UUID) -> str:
+    async def chat_helper(self, query: str, organization_id: Optional[uuid.UUID]) -> str:
         # Load contextual candidates for this query
-        # Fetching candidate names to build context for LLM
-        candidates, _ = await self.candidate_repo.list_candidates(organization_id, PaginationParams(size=5))
         context_str = "Available Candidates:\n"
-        for c in candidates:
-            skills = ", ".join([cs.skill.name for cs in c.candidate_skills])
-            context_str += f"- {c.first_name} {c.last_name} (Email: {c.email}, Status: {c.status.value}, Skills: {skills})\n"
+        if organization_id:
+            candidates, _ = await self.candidate_repo.list_candidates(
+                organization_id, skip=0, limit=10
+            )
+            for c in candidates:
+                skills = ", ".join([cs.skill.name for cs in (c.candidate_skills or [])])
+                context_str += f"- {c.first_name} {c.last_name} (Email: {c.email}, Status: {c.status.value}, Skills: {skills})\n"
+        else:
+            context_str += "(No candidates found — user has no organization assigned.)\n"
 
         return await self.gemini_client.chat_interaction(query, context_str)
 
     async def get_dashboard_summary(self, organization_id: uuid.UUID) -> Dict[str, Any]:
         # Perform aggregate lookups using repositories
-        _, total_jobs = await self.job_repo.list_jobs(organization_id, PaginationParams(size=1))
-        _, total_candidates = await self.candidate_repo.list_candidates(organization_id, PaginationParams(size=1))
+        _, total_jobs = await self.job_repo.list_jobs(organization_id, skip=0, limit=1)
+        _, total_candidates = await self.candidate_repo.list_candidates(organization_id, skip=0, limit=1)
         
         # Calculate screening ratios and return dict
         return {

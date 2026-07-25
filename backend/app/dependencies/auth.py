@@ -28,10 +28,7 @@ security_scheme = HTTPBearer(auto_error=False)
 gemini_instance = GeminiClient()
 
 
-async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
-    user_repo: UserRepository = Depends(get_user_repository),
-) -> User:
+async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme), user_repo: UserRepository = Depends(get_user_repository)) -> User:
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

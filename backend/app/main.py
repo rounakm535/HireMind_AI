@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.exceptions.custom import HireMindException
 from app.middleware.auth import AuthenticationMiddleware
@@ -36,6 +38,11 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+# Mount Static Files for uploaded resumes
+uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # CORS configuration
 app.add_middleware(
