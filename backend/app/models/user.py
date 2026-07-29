@@ -29,9 +29,9 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
 
     # Relationships
-    organization: Mapped[Optional["Organization"]] = relationship("Organization", back_populates="users")
-    audit_logs: Mapped[List["AuditLog"]] = relationship("AuditLog", back_populates="user")
-    email_logs: Mapped[List["EmailLog"]] = relationship("EmailLog", back_populates="sender")
+    organization = relationship("Organization", back_populates="users")
+    audit_logs = relationship("AuditLog", back_populates="user")
+    email_logs = relationship("EmailLog", back_populates="sender")
 
 
 class AuditLog(Base, UUIDMixin, TimestampMixin):
@@ -47,4 +47,4 @@ class AuditLog(Base, UUIDMixin, TimestampMixin):
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
 
     # Relationships
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="audit_logs")
+    user = relationship("User", back_populates="audit_logs")
