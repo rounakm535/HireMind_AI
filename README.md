@@ -1,4 +1,4 @@
-# 🚀 HireMind AI – AI-Powered Resume Screening & Applicant Tracking System (ATS)
+# 🚀 HireMind AI –> AI-Powered Resume Screening & Applicant Tracking System (ATS)
 
 > A production-grade AI-powered Applicant Tracking System (ATS) that leverages Large Language Models (LLMs) to automate resume screening, candidate ranking, skill gap analysis, interview preparation, and recruiter workflows.
 
