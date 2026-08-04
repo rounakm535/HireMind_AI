@@ -31,7 +31,7 @@ async def main():
         from app.models.user import User
         async with AsyncSessionLocal() as session:
             result = await session.execute(
-                select(User).where(User.email == "mishra.rounak15@gmail.com")
+                select(User).where(User.email == "rony.test@gmail.com")
             )
             user = result.scalars().first()
             if user:
@@ -47,11 +47,11 @@ async def main():
                         print(f"    - {u.email} (active={u.is_active})")
                 else:
                     print("    (no users in database)")
-                print("\nCreating new user mishra.rounak15@gmail.com with password Admin@1234 ...")
+                print("\nCreating new user rony.test@gmail.com with password Admin@1234 ...")
                 from app.core.security import get_password_hash
                 from app.models.user import User, UserRole
                 new_user = User(
-                    email="mishra.rounak15@gmail.com",
+                    email="rony.test@gmail.com",
                     hashed_password=get_password_hash("Admin@1234"),
                     first_name="Rounak",
                     last_name="Mishra",
@@ -78,7 +78,7 @@ async def main():
         async with AsyncSessionLocal() as session:
             await session.execute(
                 update(User)
-                .where(User.email == "mishra.rounak15@gmail.com")
+                .where(User.email == "rony.test@gmail.com")
                 .values(hashed_password=new_hash, is_active=True)
             )
             await session.commit()
@@ -95,7 +95,7 @@ async def main():
         from app.models.user import User
         async with AsyncSessionLocal() as session:
             result = await session.execute(
-                select(User).where(User.email == "mishra.rounak15@gmail.com")
+                select(User).where(User.email == "rony.test@gmail.com")
             )
             user = result.scalars().first()
             ok = verify_password("Admin@1234", user.hashed_password)
@@ -103,7 +103,7 @@ async def main():
     except Exception as e:
         print(f"  FAIL: {e}")
 
-    print("\nDone. Try logging in with: mishra.rounak15@gmail.com / Admin@1234")
+    print("\nDone. Try logging in with: rony.test@gmail.com / Admin@1234")
 
 if __name__ == "__main__":
     asyncio.run(main())
