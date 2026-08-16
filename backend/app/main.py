@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.exceptions.custom import HireMindException
 from app.middleware.auth import AuthenticationMiddleware
 from app.db.database import init_db
+import app.db.base
 
 # Import API Routers
 from app.api.v1.auth import router as auth_router
@@ -67,6 +68,23 @@ async def hiremind_exception_handler(request: Request, exc: HireMindException):
                 "message": exc.message,
                 "code": exc.code,
                 "details": exc.details,
+            }
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    import traceback
+    tb = traceback.format_exc()
+    print("UNHANDLED API EXCEPTION:", tb)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "message": str(exc) or "Internal Server Error",
+                "code": "INTERNAL_SERVER_ERROR",
+                "details": {"traceback": tb},
             }
         },
     )

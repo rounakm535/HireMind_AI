@@ -15,9 +15,11 @@ read_checker = RoleChecker([UserRole.ADMIN, UserRole.RECRUITER, UserRole.HIRING_
 write_checker = RoleChecker([UserRole.ADMIN, UserRole.RECRUITER])
 
 
+from typing import List, Optional
+
 @router.post("/upload", response_model=ResumeResponse, status_code=status.HTTP_201_CREATED)
 async def upload_resume(
-    candidate_id: uuid.UUID = Form(...),
+    candidate_id: Optional[uuid.UUID] = Form(None),
     file: UploadFile = File(...),
     current_user: User = Depends(write_checker),
     resume_service: ResumeService = Depends(get_resume_service),

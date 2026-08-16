@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Float, ForeignKey, String, Text, JSON
 from sqlalchemy.orm import mapped_column, relationship
 from app.db.database import Base, UUIDMixin, TimestampMixin
+from app.models.user import User
 
 class MatchScore(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "match_scores"

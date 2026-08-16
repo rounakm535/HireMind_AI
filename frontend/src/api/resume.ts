@@ -2,9 +2,11 @@ import apiClient from './axios';
 import { Resume, MatchScore, EmailLog } from '../types';
 
 export const resumeApi = {
-  uploadResume: async (candidateId: string, file: File): Promise<Resume> => {
+  uploadResume: async (candidateId: string | null | undefined, file: File): Promise<Resume> => {
     const formData = new FormData();
-    formData.append('candidate_id', candidateId);
+    if (candidateId) {
+      formData.append('candidate_id', candidateId);
+    }
     formData.append('file', file);
 
     const response = await apiClient.post<Resume>('/resumes/upload', formData, {

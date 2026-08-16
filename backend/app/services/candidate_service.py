@@ -18,16 +18,24 @@ class CandidateService:
         return candidate
 
     async def create_candidate(self, schema: CandidateCreate, organization_id: uuid.UUID) -> Candidate:
-        # Create candidate basic info
-        candidate = Candidate(
-            organization_id=organization_id,
-            first_name=schema.first_name,
-            last_name=schema.last_name,
-            email=schema.email,
-            phone=schema.phone,
-            status=schema.status,
-        )
-        created_candidate = await self.candidate_repo.create(candidate)
+        # Check if candidate with same email already exists in this organization
+        existing = await self.candidate_repo.get_by_email(schema.email, organization_id)
+        if existing:
+            existing.first_name = schema.first_name
+            existing.last_name = schema.last_name
+            if schema.phone:
+                existing.phone = schema.phone
+            created_candidate = await self.candidate_repo.update(existing)
+        else:
+            candidate = Candidate(
+                organization_id=organization_id,
+                first_name=schema.first_name,
+                last_name=schema.last_name,
+                email=schema.email,
+                phone=schema.phone,
+                status=schema.status,
+            )
+            created_candidate = await self.candidate_repo.create(candidate)
 
         # Handle skills association
         if schema.skills:

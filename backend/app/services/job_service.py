@@ -2,7 +2,7 @@ import uuid
 from typing import Optional
 from app.models.job import Job, JobType, JobStatus
 from app.repositories.job_repository import JobRepository
-from app.schemas.job import JobCreate, JobUpdate
+from app.schemas.job import JobCreate, JobUpdate, JobResponse
 from app.utils.pagination import PaginationParams, Page
 from app.exceptions.custom import EntityNotFoundError
 
@@ -49,7 +49,7 @@ class JobService:
         job_type: Optional[JobType] = None,
         status: Optional[JobStatus] = None,
         search: Optional[str] = None,
-    ) -> Page[Job]:
+    ) -> Page[JobResponse]:
         items, total = await self.job_repo.list_jobs(
             organization_id=organization_id,
             skip=params.offset,
@@ -58,4 +58,13 @@ class JobService:
             status=status,
             search=search,
         )
-        return Page.create(items=items, total=total, params=params)
+        job_responses = [
+            JobResponse.model_validate(job)
+            for job in items
+        ]
+
+        return Page.create(
+            items=job_responses,
+            total=total,
+            params=params,
+        )

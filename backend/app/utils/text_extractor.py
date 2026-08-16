@@ -24,46 +24,57 @@ except Exception:
     pdfminer_extract_text = None
 
 def extract_text_from_pdf(content: bytes) -> str:
-    """Extract raw text from PDF file bytes."""
-    if PyPDF2 is None:
-        logger.warning("PyPDF2 is not installed; attempting alternative PDF extractors")
-        # Try pdfplumber first
+    """Extract raw text from PDF file bytes with multi-library fallback."""
+    extracted_pages = []
+
+    # 1. Try PyPDF2
+    if PyPDF2 is not None:
         try:
-            if pdfplumber is not None:
-                pdf_file = io.BytesIO(content)
-                with pdfplumber.open(pdf_file) as pdf:
-                    pages = [p.extract_text() or "" for p in pdf.pages]
-                text = "\n".join(pages).strip()
-                if text:
-                    return text
+            pdf_file = io.BytesIO(content)
+            reader = PyPDF2.PdfReader(pdf_file)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text and page_text.strip():
+                    extracted_pages.append(page_text.strip())
+            if extracted_pages:
+                return "\n\n".join(extracted_pages)
+        except Exception as e:
+            logger.debug(f"PyPDF2 extraction failed: {e}")
+
+    # 2. Try pdfplumber
+    if pdfplumber is not None:
+        try:
+            pdf_file = io.BytesIO(content)
+            with pdfplumber.open(pdf_file) as pdf:
+                pages = [p.extract_text() or "" for p in pdf.pages]
+            text = "\n\n".join([p for p in pages if p.strip()]).strip()
+            if text:
+                return text
         except Exception as e:
             logger.debug(f"pdfplumber extraction failed: {e}")
 
-        # Try pdfminer.six
+    # 3. Try pdfminer.six
+    if pdfminer_extract_text is not None:
         try:
-            if pdfminer_extract_text is not None:
-                pdf_file = io.BytesIO(content)
-                text = pdfminer_extract_text(pdf_file)
-                if text:
-                    return text.strip()
+            pdf_file = io.BytesIO(content)
+            text = pdfminer_extract_text(pdf_file)
+            if text and text.strip():
+                return text.strip()
         except Exception as e:
             logger.debug(f"pdfminer extraction failed: {e}")
 
-        logger.warning("No PDF extraction libraries available or extraction failed; falling back to plaintext heuristics")
-        return ""
-
+    # 4. Fallback string extraction for raw PDF bytes
+    import re
     try:
-        pdf_file = io.BytesIO(content)
-        reader = PyPDF2.PdfReader(pdf_file)
-        text = ""
-        for page in reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-        return text.strip()
-    except Exception as e:
-        logger.error(f"Error extracting text from PDF: {e}")
-        return ""
+        decoded = content.decode("latin-1", errors="ignore")
+        matches = re.findall(r"[\w\s\-\.,;:\(\)\[\]/@\+]{10,}", decoded)
+        clean_chunks = [m.strip() for m in matches if len(m.strip()) > 15 and not m.strip().startswith("%PDF")]
+        if clean_chunks:
+            return "\n\n".join(clean_chunks[:50])
+    except Exception:
+        pass
+
+    return ""
 
 def extract_text_from_docx(content: bytes) -> str:
     """Extract raw text from DOCX file bytes."""

@@ -11,9 +11,9 @@ import Button from '../../components/common/Button';
 import { UploadCloud, FileText, X, Sparkles } from 'lucide-react';
 
 const uploadSchema = z.object({
-  first_name: z.string().min(1, 'First name is required'),
-  last_name: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Please enter a valid email address'),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  email: z.string().email('Please enter a valid email address').or(z.literal('')).optional(),
   phone: z.string().optional(),
 });
 
@@ -55,19 +55,37 @@ const UploadResume: React.FC = () => {
       return;
     }
 
-    // Step 1: Create Candidate profile
-    const candidateResult = await dispatch(createNewCandidate(values));
-    if (createNewCandidate.fulfilled.match(candidateResult)) {
-      const createdCandidate = candidateResult.payload;
+    let candidateId: string | undefined = undefined;
 
-      // Step 2: Upload file and trigger parsing
-      const uploadResult = await dispatch(
-        uploadCandidateResume({ candidateId: createdCandidate.id, file })
+    // If user explicitly filled out manual info, create candidate profile first
+    if (values.first_name?.trim() || values.last_name?.trim() || values.email?.trim()) {
+      const candidateResult = await dispatch(
+        createNewCandidate({
+          first_name: values.first_name?.trim() || 'Applicant',
+          last_name: values.last_name?.trim() || 'Candidate',
+          email: values.email?.trim() || `applicant_${Math.random().toString(36).substring(2, 9)}@extracted.com`,
+          phone: values.phone?.trim() || undefined,
+        })
       );
+      if (createNewCandidate.fulfilled.match(candidateResult)) {
+        candidateId = candidateResult.payload.id;
+      } else {
+        return;
+      }
+    }
 
-      if (uploadCandidateResume.fulfilled.match(uploadResult)) {
-        // Redirect to candidate's newly created profile page
-        navigate(`/candidates/${createdCandidate.id}`);
+    // Step 2: Upload file and trigger resume parsing (backend will auto-extract and populate details)
+    const uploadResult = await dispatch(
+      uploadCandidateResume({ candidateId, file })
+    );
+
+    if (uploadCandidateResume.fulfilled.match(uploadResult)) {
+      const createdResume = uploadResult.payload;
+      const targetCandidateId = candidateId || createdResume.candidate_id;
+      if (targetCandidateId) {
+        navigate(`/candidates/${targetCandidateId}`);
+      } else {
+        navigate('/candidates');
       }
     }
   };
@@ -75,25 +93,30 @@ const UploadResume: React.FC = () => {
   return (
     <div className="font-sans space-y-6">
       {/* Header */}
-      <PageHeader title="Upload Candidate Resume" subtitle="Add candidate profile details and parse their resume document." />
+      <PageHeader title="Upload Candidate Resume" subtitle="Upload a resume to automatically extract candidate details, skills, experience, and education." />
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start max-w-5xl">
-        {/* Left Side: Candidate details form inputs */}
+        {/* Left Side: Candidate profile input form */}
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-5">
-          <h3 className="text-[14px] font-bold text-slate-800 tracking-tight">Candidate Profile Information</h3>
+          <div>
+            <h3 className="text-[14px] font-bold text-slate-800 tracking-tight">Candidate Profile Information</h3>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              Enter details manually or leave empty to auto-extract candidate name, email, phone, experience & skills directly from the resume file.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="First Name"
               id="first_name"
-              placeholder="e.g. Alice"
+              placeholder="e.g. Alice (or auto-extract)"
               error={errors.first_name?.message}
               {...register('first_name')}
             />
             <Input
               label="Last Name"
               id="last_name"
-              placeholder="e.g. Smith"
+              placeholder="e.g. Smith (or auto-extract)"
               error={errors.last_name?.message}
               {...register('last_name')}
             />
@@ -102,15 +125,15 @@ const UploadResume: React.FC = () => {
           <Input
             label="Email Address"
             id="email"
-            placeholder="alice.smith@example.com"
+            placeholder="alice.smith@example.com (or auto-extract)"
             error={errors.email?.message}
             {...register('email')}
           />
 
           <Input
-            label="Phone Number (Optional)"
+            label="Phone Number"
             id="phone"
-            placeholder="+1 (555) 0123"
+            placeholder="+1 (555) 0123 (or auto-extract)"
             error={errors.phone?.message}
             {...register('phone')}
           />

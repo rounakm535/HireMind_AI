@@ -2,13 +2,15 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Candidate } from '../../types';
 import Badge from '../common/Badge';
-import { User, Mail, Phone, Calendar } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Pencil, Trash2 } from 'lucide-react';
 
 interface CandidateCardProps {
   candidate: Candidate;
+  onEdit?: (candidate: Candidate) => void;
+  onDelete?: (candidate: Candidate) => void;
 }
 
-const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
+const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onEdit, onDelete }) => {
   const navigate = useNavigate();
 
   const getStatusVariant = (status: string) => {
@@ -45,7 +47,33 @@ const CandidateCard: React.FC<CandidateCardProps> = ({ candidate }) => {
           <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center border border-slate-200">
             <User size={18} />
           </div>
-          <Badge variant={getStatusVariant(candidate.status)}>{candidate.status}</Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant={getStatusVariant(candidate.status)}>{candidate.status}</Badge>
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(candidate);
+                }}
+                className="text-slate-400 hover:text-brand-600 p-1 rounded-md transition"
+                title="Edit Details"
+              >
+                <Pencil size={14} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(candidate);
+                }}
+                className="text-slate-400 hover:text-red-600 p-1 rounded-md transition"
+                title="Delete Candidate"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         <h3 className="text-[14px] font-bold text-slate-800 tracking-tight leading-tight">

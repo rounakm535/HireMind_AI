@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Candidate } from '../../types';
 import Table, { TableColumn } from '../common/Table';
 import Badge from '../common/Badge';
-import { Calendar, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 
 interface CandidateTableProps {
   candidates: Candidate[];
   isLoading?: boolean;
+  onEdit?: (candidate: Candidate) => void;
+  onDelete?: (candidate: Candidate) => void;
 }
 
-const CandidateTable: React.FC<CandidateTableProps> = ({ candidates, isLoading = false }) => {
+const CandidateTable: React.FC<CandidateTableProps> = ({ candidates, isLoading = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
 
   const getStatusVariant = (status: string) => {
@@ -72,14 +74,41 @@ const CandidateTable: React.FC<CandidateTableProps> = ({ candidates, isLoading =
     },
     {
       key: 'actions',
-      header: '',
+      header: 'Actions',
       render: (candidate) => (
-        <button
-          onClick={() => navigate(`/candidates/${candidate.id}`)}
-          className="text-slate-400 hover:text-brand-600 transition p-1"
-        >
-          <ChevronRight size={16} />
-        </button>
+        <div className="flex items-center gap-1 justify-end">
+          {onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(candidate);
+              }}
+              className="text-slate-400 hover:text-brand-600 p-1.5 rounded-lg transition"
+              title="Edit Candidate"
+            >
+              <Pencil size={15} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(candidate);
+              }}
+              className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg transition"
+              title="Delete Candidate"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+          <button
+            onClick={() => navigate(`/candidates/${candidate.id}`)}
+            className="text-slate-400 hover:text-brand-600 transition p-1.5 rounded-lg"
+            title="View Details"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       ),
     },
   ];

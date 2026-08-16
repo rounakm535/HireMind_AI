@@ -88,7 +88,7 @@ export const deleteCandidateProfile = createAsyncThunk(
 
 export const uploadCandidateResume = createAsyncThunk(
   'candidates/uploadResume',
-  async ({ candidateId, file }: { candidateId: string; file: File }, { rejectWithValue }) => {
+  async ({ candidateId, file }: { candidateId?: string; file: File }, { rejectWithValue }) => {
     try {
       return await resumeApi.uploadResume(candidateId, file);
     } catch (error: any) {
@@ -178,8 +178,14 @@ const candidateSlice = createSlice({
       .addCase(uploadCandidateResume.pending, (state) => {
         state.actionLoading = true;
       })
-      .addCase(uploadCandidateResume.fulfilled, (state) => {
+      .addCase(uploadCandidateResume.fulfilled, (state, action: PayloadAction<Resume>) => {
         state.actionLoading = false;
+        if (state.currentCandidate && state.currentCandidate.id === action.payload.candidate_id) {
+          if (!state.currentCandidate.resumes) {
+            state.currentCandidate.resumes = [];
+          }
+          state.currentCandidate.resumes.unshift(action.payload);
+        }
       })
       .addCase(uploadCandidateResume.rejected, (state, action) => {
         state.actionLoading = false;

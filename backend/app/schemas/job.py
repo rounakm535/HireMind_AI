@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app.models.job import JobStatus, JobType
 
 
@@ -28,10 +28,10 @@ class JobUpdate(BaseModel):
 
 
 class JobResponse(JobBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     organization_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
