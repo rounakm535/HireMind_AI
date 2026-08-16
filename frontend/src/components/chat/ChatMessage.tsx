@@ -6,6 +6,30 @@ interface ChatMessageProps {
   message: Message;
 }
 
+const formatMessageText = (text: string) => {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed.questions && Array.isArray(parsed.questions)) {
+        return parsed.questions
+          .map(
+            (q: any, i: number) =>
+              `${i + 1}. ${q.question}\n   *Expected Answer*: ${q.expected_answer || 'N/A'}${q.category ? ` (${q.category})` : ''}`
+          )
+          .join('\n\n');
+      }
+      if (Object.keys(parsed).length === 0) {
+        return 'Hello! How can I help you evaluate candidates, review skills, or generate interview questions today?';
+      }
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return text;
+    }
+  }
+  return text;
+};
+
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isAssistant = message.sender === 'assistant';
 
@@ -20,13 +44,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 
       {/* Message Bubble */}
       <div
-        className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed shadow-sm border ${
+        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed shadow-sm border ${
           isAssistant
             ? 'bg-white border-slate-100 text-slate-700'
             : 'bg-brand-600 border-brand-500 text-white shadow-brand-100/10'
         }`}
       >
-        <p className="whitespace-pre-wrap select-text font-medium">{message.text}</p>
+        <p className="whitespace-pre-wrap select-text font-medium">{formatMessageText(message.text)}</p>
         <span
           className={`block text-[9px] mt-1.5 font-semibold text-right ${
             isAssistant ? 'text-slate-400' : 'text-brand-200'

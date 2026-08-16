@@ -1,7 +1,0 @@
-Rounak Mishra
-Bengaluru , Karnataka , 560016
-+91 9852637240
-mishra.rounak15@gmail.com
-
-Professional Summary
-Computer Science graduate with hands-on experience in Python, FastAPI, SQL, backend development, and AI-powered applications.

@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks';
-import { fetchCandidates } from '../../redux/slices/candidateSlice';
+import { fetchCandidates, deleteCandidateProfile } from '../../redux/slices/candidateSlice';
 import PageHeader from '../../components/layout/PageHeader';
 import SearchBar from '../../components/common/SearchBar';
 import Select from '../../components/common/Select';
 import Pagination from '../../components/common/Pagination';
 import CandidateCard from '../../components/candidates/CandidateCard';
 import CandidateTable from '../../components/candidates/CandidateTable';
+import EditCandidateModal from '../../components/candidates/EditCandidateModal';
+import DeleteConfirmModal from '../../components/common/DeleteConfirmModal';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
 import { Upload, LayoutGrid, List } from 'lucide-react';
-import { CandidateStatus } from '../../types';
+import { Candidate, CandidateStatus } from '../../types';
 
 const CandidateList: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +24,10 @@ const CandidateList: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('ALL');
+
+  const [selectedCandidateForEdit, setSelectedCandidateForEdit] = useState<Candidate | null>(null);
+  const [selectedCandidateForDelete, setSelectedCandidateForDelete] = useState<Candidate | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadCandidates = (page: number = 1) => {
     const params: any = {
@@ -37,6 +43,17 @@ const CandidateList: React.FC = () => {
   useEffect(() => {
     loadCandidates(1);
   }, [search, status, dispatch]);
+
+  const handleDeleteCandidate = async () => {
+    if (!selectedCandidateForDelete) return;
+    setDeleting(true);
+    const res = await dispatch(deleteCandidateProfile(selectedCandidateForDelete.id));
+    if (deleteCandidateProfile.fulfilled.match(res)) {
+      loadCandidates(currentPage);
+      setSelectedCandidateForDelete(null);
+    }
+    setDeleting(false);
+  };
 
   const statusOptions = [
     { value: 'ALL', label: 'All Statuses' },
@@ -105,15 +122,46 @@ const CandidateList: React.FC = () => {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {candidates.map((candidate) => (
-            <CandidateCard key={candidate.id} candidate={candidate} />
+            <CandidateCard
+              key={candidate.id}
+              candidate={candidate}
+              onEdit={(c) => setSelectedCandidateForEdit(c)}
+              onDelete={(c) => setSelectedCandidateForDelete(c)}
+            />
           ))}
         </div>
       ) : (
-        <CandidateTable candidates={candidates} />
+        <CandidateTable
+          candidates={candidates}
+          onEdit={(c) => setSelectedCandidateForEdit(c)}
+          onDelete={(c) => setSelectedCandidateForDelete(c)}
+        />
       )}
 
       {/* Pagination */}
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={loadCandidates} />
+
+      {/* Edit Modal */}
+      {selectedCandidateForEdit && (
+        <EditCandidateModal
+          isOpen={Boolean(selectedCandidateForEdit)}
+          onClose={() => setSelectedCandidateForEdit(null)}
+          candidate={selectedCandidateForEdit}
+          onSuccess={() => loadCandidates(currentPage)}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {selectedCandidateForDelete && (
+        <DeleteConfirmModal
+          isOpen={Boolean(selectedCandidateForDelete)}
+          onClose={() => setSelectedCandidateForDelete(null)}
+          onConfirm={handleDeleteCandidate}
+          title="Delete Candidate Record"
+          message={`Are you sure you want to delete ${selectedCandidateForDelete.first_name} ${selectedCandidateForDelete.last_name}? This action cannot be undone.`}
+          isLoading={deleting}
+        />
+      )}
     </div>
   );
 };

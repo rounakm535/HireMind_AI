@@ -77,6 +77,33 @@ class ResumeService:
         # Parse resume initially using Gemini
         parsed_result = await self.gemini_client.parse_resume(raw_text_extracted)
 
+        # Populate CandidateSkill table with extracted skills
+        skills_list = parsed_result.skills if hasattr(parsed_result, "skills") else []
+        if not skills_list and hasattr(parsed_result, "model_dump"):
+            skills_list = parsed_result.model_dump().get("skills", [])
+
+        if skills_list:
+            from app.models.candidate import CandidateSkill
+            for skill_name in skills_list:
+                if not skill_name or not isinstance(skill_name, str):
+                    continue
+                clean_name = skill_name.strip()
+                if not clean_name:
+                    continue
+                skill = await self.candidate_repo.get_skill_by_name(clean_name)
+                if not skill:
+                    skill = await self.candidate_repo.create_skill(clean_name)
+
+                cs = CandidateSkill(
+                    candidate_id=candidate_id,
+                    skill_id=skill.id,
+                    proficiency="Proficient",
+                )
+                try:
+                    await self.candidate_repo.add_candidate_skill(cs)
+                except Exception:
+                    pass
+
         # Create resume model instance
         resume = Resume(
             candidate_id=candidate_id,
@@ -114,11 +141,6 @@ class ResumeService:
         if not job or job.organization_id != organization_id:
             raise EntityNotFoundError("Job not found under this organization.")
 
-        # Check if match already exists
-        existing_match = await self.resume_repo.get_match_score(job_id, resume.candidate_id)
-        if existing_match:
-            return existing_match
-
         # Execute the LangGraph screening pipeline!
         inputs = {
             "resume_raw_text": resume.raw_text or "",
@@ -131,19 +153,40 @@ class ResumeService:
         graph_output = await resume_screening_graph.ainvoke(inputs)
 
         # Save match score
-        score_val = graph_output.get("match_score", 50.0)
-        explanation = graph_output.get("fit_explanation", "Standard automated matching profile.")
+        score_val = graph_output.get("match_score", 75.0)
+        explanation = graph_output.get("fit_explanation") or graph_output.get("hiring_recommendation") or "Automated AI candidate match evaluation completed."
         gaps = graph_output.get("skill_gap", {})
 
-        match_score = MatchScore(
-            job_id=job_id,
-            candidate_id=resume.candidate_id,
-            resume_id=resume_id,
-            score=score_val,
-            fit_explanation=explanation,
-            skill_gap_analysis=gaps,
-        )
-        created_match = await self.resume_repo.create_match_score(match_score)
+        matching_skills = graph_output.get("matching_skills", [])
+        missing_skills = gaps.get("missing_skills") or graph_output.get("missing_skills", [])
+        additional_skills = gaps.get("priority_skills") or gaps.get("strengths") or []
+
+        skill_gap_analysis = {
+            "matched_skills": matching_skills,
+            "missing_skills": missing_skills,
+            "additional_skills": additional_skills,
+            "recommended_learning": gaps.get("recommended_learning", []),
+            "strengths": gaps.get("strengths", []),
+            "weaknesses": gaps.get("weaknesses", []),
+        }
+
+        # Check if match already exists
+        existing_match = await self.resume_repo.get_match_score(job_id, resume.candidate_id)
+        if existing_match:
+            existing_match.score = score_val
+            existing_match.fit_explanation = explanation
+            existing_match.skill_gap_analysis = skill_gap_analysis
+            created_match = await self.resume_repo.create_match_score(existing_match)
+        else:
+            match_score = MatchScore(
+                job_id=job_id,
+                candidate_id=resume.candidate_id,
+                resume_id=resume_id,
+                score=score_val,
+                fit_explanation=explanation,
+                skill_gap_analysis=skill_gap_analysis,
+            )
+            created_match = await self.resume_repo.create_match_score(match_score)
 
         # Save generated interview questions
         questions = graph_output.get("suggested_questions", [])
@@ -234,3 +277,18 @@ class ResumeService:
                 {"event": "New job post created", "timestamp": "2 hours ago"}
             ]
         }
+
+    async def _save_local(self, candidate_id: uuid.UUID, file_name: str, file_content: bytes) -> str:
+        """Save uploaded resume file locally and return static file URL path."""
+        import os
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        uploads_dir = os.path.join(backend_dir, "uploads", "resumes", str(candidate_id))
+        os.makedirs(uploads_dir, exist_ok=True)
+
+        safe_filename = f"{uuid.uuid4()}-{file_name}"
+        file_path = os.path.join(uploads_dir, safe_filename)
+
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+
+        return f"/uploads/resumes/{candidate_id}/{safe_filename}"

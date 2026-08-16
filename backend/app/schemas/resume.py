@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class InterviewQuestionBase(BaseModel):
@@ -15,29 +15,30 @@ class InterviewQuestionCreate(InterviewQuestionBase):
 
 
 class InterviewQuestionResponse(InterviewQuestionBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     resume_id: uuid.UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class ResumeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     candidate_id: uuid.UUID
     file_url: str
     file_name: str
     parsed_content: Optional[Dict[str, Any]] = None
     summary: Optional[str] = None
+    interview_questions: List[InterviewQuestionResponse] = []
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class MatchScoreResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     job_id: uuid.UUID
     candidate_id: uuid.UUID
@@ -47,9 +48,6 @@ class MatchScoreResponse(BaseModel):
     skill_gap_analysis: Optional[Dict[str, Any]] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class EmailLogCreate(BaseModel):
     recipient_email: str
@@ -58,6 +56,8 @@ class EmailLogCreate(BaseModel):
 
 
 class EmailLogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     sender_id: Optional[uuid.UUID] = None
     recipient_email: str
@@ -66,8 +66,6 @@ class EmailLogResponse(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
 
 
 class ResumeParsingResult(BaseModel):

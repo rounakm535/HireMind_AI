@@ -5,6 +5,8 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.candidate import Candidate, CandidateStatus, CandidateSkill
 from app.models.skill import Skill
+from app.models.resume import Resume
+from app.models.match import MatchScore
 
 
 class CandidateRepository:
@@ -15,9 +17,23 @@ class CandidateRepository:
         result = await self.db.execute(
             select(Candidate)
             .options(
-                selectinload(Candidate.candidate_skills).selectinload(CandidateSkill.skill)
+                selectinload(Candidate.candidate_skills).selectinload(CandidateSkill.skill),
+                selectinload(Candidate.resumes).selectinload(Resume.interview_questions),
+                selectinload(Candidate.match_scores),
             )
             .where(Candidate.id == candidate_id)
+        )
+        return result.scalars().first()
+
+    async def get_by_email(self, email: str, organization_id: uuid.UUID) -> Optional[Candidate]:
+        result = await self.db.execute(
+            select(Candidate)
+            .options(
+                selectinload(Candidate.candidate_skills).selectinload(CandidateSkill.skill),
+                selectinload(Candidate.resumes).selectinload(Resume.interview_questions),
+                selectinload(Candidate.match_scores),
+            )
+            .where(Candidate.email == email, Candidate.organization_id == organization_id)
         )
         return result.scalars().first()
 
@@ -65,7 +81,9 @@ class CandidateRepository:
         # Retrieve items with relationships preloaded
         query = (
             query.options(
-                selectinload(Candidate.candidate_skills).selectinload(CandidateSkill.skill)
+                selectinload(Candidate.candidate_skills).selectinload(CandidateSkill.skill),
+                selectinload(Candidate.resumes).selectinload(Resume.interview_questions),
+                selectinload(Candidate.match_scores),
             )
             .order_by(Candidate.created_at.desc())
             .offset(skip)

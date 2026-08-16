@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks';
-import { fetchCandidateDetails, screenAndMatchResume, clearCurrentCandidate } from '../../redux/slices/candidateSlice';
+import { fetchCandidateDetails, screenAndMatchResume, clearCurrentCandidate, deleteCandidateProfile } from '../../redux/slices/candidateSlice';
 import { fetchJobs } from '../../redux/slices/jobSlice';
 import PageHeader from '../../components/layout/PageHeader';
 import CandidateDetails from '../../components/candidates/CandidateDetails';
@@ -9,7 +9,9 @@ import ResumeViewer from '../../components/candidates/ResumeViewer';
 import Loader from '../../components/common/Loader';
 import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
-import { ArrowLeft, Play, Sparkles } from 'lucide-react';
+import EditCandidateModal from '../../components/candidates/EditCandidateModal';
+import DeleteConfirmModal from '../../components/common/DeleteConfirmModal';
+import { ArrowLeft, Play, Sparkles, Pencil, Trash2 } from 'lucide-react';
 
 const CandidateProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +24,9 @@ const CandidateProfile: React.FC = () => {
 
   // States
   const [selectedJobId, setSelectedJobId] = useState<string>('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -43,7 +48,20 @@ const CandidateProfile: React.FC = () => {
       return;
     }
 
-    dispatch(screenAndMatchResume({ resumeId, jobId: selectedJobId }));
+    const res = await dispatch(screenAndMatchResume({ resumeId, jobId: selectedJobId }));
+    if (screenAndMatchResume.fulfilled.match(res)) {
+      dispatch(fetchCandidateDetails(id));
+    }
+  };
+
+  const handleDeleteCandidate = async () => {
+    if (!id) return;
+    setDeleting(true);
+    const res = await dispatch(deleteCandidateProfile(id));
+    if (deleteCandidateProfile.fulfilled.match(res)) {
+      navigate('/candidates');
+    }
+    setDeleting(false);
   };
 
   if (loading && !currentCandidate) {
@@ -76,10 +94,20 @@ const CandidateProfile: React.FC = () => {
     <div className="font-sans space-y-6">
       {/* Header */}
       <PageHeader title="Candidate Profile" subtitle="Detailed information and AI match parameters evaluation.">
-        <Button variant="outline" size="sm" onClick={() => navigate('/candidates')} className="gap-1.5 h-9">
-          <ArrowLeft size={16} />
-          <span>Back to List</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)} className="gap-1.5 h-9">
+            <Pencil size={15} />
+            <span>Edit Details</span>
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => setIsDeleteModalOpen(true)} className="gap-1.5 h-9">
+            <Trash2 size={15} />
+            <span>Delete Candidate</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/candidates')} className="gap-1.5 h-9">
+            <ArrowLeft size={16} />
+            <span>Back to List</span>
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Quick AI screening controller Action Panel */}
@@ -137,6 +165,30 @@ const CandidateProfile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <EditCandidateModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          candidate={currentCandidate}
+          onSuccess={() => {
+            if (id) dispatch(fetchCandidateDetails(id));
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <DeleteConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteCandidate}
+          title="Delete Candidate Record"
+          message={`Are you sure you want to delete ${currentCandidate.first_name} ${currentCandidate.last_name}? All associated resumes, match scores, and interview questions will be permanently removed.`}
+          isLoading={deleting}
+        />
+      )}
     </div>
   );
 };

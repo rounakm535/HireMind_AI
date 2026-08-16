@@ -24,6 +24,22 @@ interface CandidateDetailsProps {
 const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchScore, questions = [] }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'screening' | 'questions'>('profile');
 
+  const candidateResume = candidate.resumes?.[0];
+  const parsedContent = candidateResume?.parsed_content;
+
+  // Derive skills from candidate_skills or parsed content fallback
+  const displaySkills: Array<{ name: string; proficiency?: string }> = 
+    candidate.candidate_skills && candidate.candidate_skills.length > 0
+      ? candidate.candidate_skills.map((cs) => ({
+          name: cs.skill.name,
+          proficiency: cs.proficiency || undefined,
+        }))
+      : (parsedContent?.skills || []).map((s: string) => ({ name: s }));
+
+  const experiences = parsedContent?.experience || [];
+  const educations = parsedContent?.education || [];
+  const displayQuestions = questions.length > 0 ? questions : (candidateResume?.interview_questions || []);
+
   const formattedDate = new Date(candidate.created_at).toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
@@ -59,7 +75,9 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
             </div>
             <div>
               <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">AI Fit Score</p>
-              <p className="text-[12px] text-slate-600 font-semibold mt-0.5">High Match</p>
+              <p className="text-[12px] text-slate-600 font-semibold mt-0.5">
+                {matchScore.score >= 80 ? 'High Match' : matchScore.score >= 60 ? 'Moderate Match' : 'Low Match'}
+              </p>
             </div>
           </div>
         )}
@@ -95,7 +113,7 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
               : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
-          Suggested Questions ({questions.length})
+          Suggested Questions ({displayQuestions.length})
         </button>
       </div>
 
@@ -110,10 +128,10 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
                 <Award size={15} className="text-brand-500" /> Key Skills
               </h3>
               <div className="flex flex-wrap gap-2">
-                {candidate.candidate_skills && candidate.candidate_skills.length > 0 ? (
-                  candidate.candidate_skills.map((cs) => (
-                    <Badge key={cs.skill.id} variant="brand" className="px-3 py-1 text-xs">
-                      {cs.skill.name} {cs.proficiency && `(${cs.proficiency})`}
+                {displaySkills.length > 0 ? (
+                  displaySkills.map((sk, idx) => (
+                    <Badge key={idx} variant="brand" className="px-3 py-1 text-xs">
+                      {sk.name} {sk.proficiency && `(${sk.proficiency})`}
                     </Badge>
                   ))
                 ) : (
@@ -122,44 +140,56 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
               </div>
             </div>
 
-            {/* Experience Mockup */}
+            {/* Dynamic Work Experience */}
             <div className="pt-2 border-t border-slate-50">
               <h3 className="text-[13px] font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Briefcase size={15} className="text-brand-500" /> Work Experience
               </h3>
-              <div className="relative pl-6 border-l-2 border-slate-100 space-y-6">
-                {/* Stage 1 */}
-                <div className="relative">
-                  <span className="absolute -left-[31px] top-1.5 w-4 h-4 bg-brand-100 text-brand-600 rounded-full border-4 border-white flex items-center justify-center"></span>
-                  <h4 className="text-[13px] font-bold text-slate-800">Senior Software Engineer</h4>
-                  <p className="text-[11px] text-slate-400 font-bold">Tech Solutions Corp • 2022 - Present</p>
-                  <p className="text-[12px] text-slate-500 mt-2 leading-relaxed font-medium">
-                    Led development of API backend systems using Python and FastAPI. Scaled database queries in PostgreSQL, optimizing search and retrieval latency by 40%.
-                  </p>
+              {experiences.length > 0 ? (
+                <div className="relative pl-6 border-l-2 border-slate-100 space-y-6">
+                  {experiences.map((exp: any, idx: number) => (
+                    <div key={idx} className="relative">
+                      <span className="absolute -left-[31px] top-1.5 w-4 h-4 bg-brand-100 text-brand-600 rounded-full border-4 border-white flex items-center justify-center"></span>
+                      <h4 className="text-[13px] font-bold text-slate-800">
+                        {exp.job_title || exp.title || exp.designation || 'Software Professional'}
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-bold">
+                        {exp.company || exp.organization || 'Tech Company'} {exp.dates ? `• ${exp.dates}` : ''}
+                      </p>
+                      {exp.description && (
+                        <p className="text-[12px] text-slate-500 mt-2 leading-relaxed font-medium">
+                          {exp.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                {/* Stage 2 */}
-                <div className="relative">
-                  <span className="absolute -left-[31px] top-1.5 w-4 h-4 bg-slate-100 text-slate-400 rounded-full border-4 border-white flex items-center justify-center"></span>
-                  <h4 className="text-[13px] font-bold text-slate-800">Software Developer</h4>
-                  <p className="text-[11px] text-slate-400 font-bold">Innovate Lab • 2020 - 2022</p>
-                  <p className="text-[12px] text-slate-500 mt-2 leading-relaxed font-medium">
-                    Implemented RESTful routes and schemas validation using Django and Pydantic v1. Configured Redis cache servers and worked within containerized Docker instances.
-                  </p>
-                </div>
-              </div>
+              ) : (
+                <p className="text-slate-400 text-xs">No work experience details extracted.</p>
+              )}
             </div>
 
-            {/* Education Mockup */}
+            {/* Dynamic Education */}
             <div className="pt-4 border-t border-slate-50">
               <h3 className="text-[13px] font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <BookOpen size={15} className="text-brand-500" /> Education & Degrees
               </h3>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-[13px] font-bold text-slate-800">Bachelor of Science in Computer Science</h4>
-                  <p className="text-[11px] text-slate-400 font-bold">State University • Graduation 2020</p>
+              {educations.length > 0 ? (
+                <div className="space-y-4">
+                  {educations.map((edu: any, idx: number) => (
+                    <div key={idx}>
+                      <h4 className="text-[13px] font-bold text-slate-800">
+                        {edu.degree || edu.field_of_study || 'Higher Education Degree'}
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-bold">
+                        {edu.school || edu.institution || edu.university || 'University'} {edu.graduation_year ? `• Graduation ${edu.graduation_year}` : edu.dates ? `• ${edu.dates}` : ''}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <p className="text-slate-400 text-xs">No education details extracted.</p>
+              )}
             </div>
           </div>
         )}
@@ -188,11 +218,15 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
                         <span className="w-2 h-2 rounded-full bg-green-500" /> Matched Skills
                       </h5>
                       <div className="flex flex-wrap gap-1.5">
-                        {matchScore.skill_gap_analysis.matched_skills.map((s) => (
-                          <Badge key={s} variant="success" className="px-2 py-0.5 text-[10px]">
-                            {s}
-                          </Badge>
-                        ))}
+                        {(matchScore.skill_gap_analysis.matched_skills || []).length === 0 ? (
+                          <span className="text-slate-400 text-xs">None identified.</span>
+                        ) : (
+                          matchScore.skill_gap_analysis.matched_skills.map((s) => (
+                            <Badge key={s} variant="success" className="px-2 py-0.5 text-[10px]">
+                              {s}
+                            </Badge>
+                          ))
+                        )}
                       </div>
                     </div>
 
@@ -202,7 +236,7 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
                         <span className="w-2 h-2 rounded-full bg-red-500" /> Missing Skills
                       </h5>
                       <div className="flex flex-wrap gap-1.5">
-                        {matchScore.skill_gap_analysis.missing_skills.length === 0 ? (
+                        {(matchScore.skill_gap_analysis.missing_skills || []).length === 0 ? (
                           <span className="text-slate-400 text-xs font-medium">No missing skills. Perfect match!</span>
                         ) : (
                           matchScore.skill_gap_analysis.missing_skills.map((s) => (
@@ -220,11 +254,15 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
                         <span className="w-2 h-2 rounded-full bg-slate-400" /> Relevant Extras
                       </h5>
                       <div className="flex flex-wrap gap-1.5">
-                        {matchScore.skill_gap_analysis.additional_skills.map((s) => (
-                          <Badge key={s} variant="slate" className="px-2 py-0.5 text-[10px]">
-                            {s}
-                          </Badge>
-                        ))}
+                        {(matchScore.skill_gap_analysis.additional_skills || []).length === 0 ? (
+                          <span className="text-slate-400 text-xs font-medium">None.</span>
+                        ) : (
+                          matchScore.skill_gap_analysis.additional_skills.map((s) => (
+                            <Badge key={s} variant="slate" className="px-2 py-0.5 text-[10px]">
+                              {s}
+                            </Badge>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
@@ -242,13 +280,13 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
         {/* Tab 3: Suggested Questions */}
         {activeTab === 'questions' && (
           <div className="space-y-4">
-            {questions.length === 0 ? (
+            {displayQuestions.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
                 <HelpCircle className="mx-auto text-slate-300 mb-2" size={28} />
-                <p className="text-[13px] text-slate-500 font-medium">No suggested questions available yet.</p>
+                <p className="text-[13px] text-slate-500 font-medium">No suggested questions available yet. Run AI screening to generate interview prep questions.</p>
               </div>
             ) : (
-              questions.map((q, idx) => (
+              displayQuestions.map((q, idx) => (
                 <div key={q.id || idx} className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm font-sans flex gap-3">
                   <div className="w-7 h-7 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
                     Q

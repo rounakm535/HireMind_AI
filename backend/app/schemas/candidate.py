@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from app.models.candidate import CandidateStatus
+from app.schemas.resume import ResumeResponse, MatchScoreResponse
 
 
 class SkillBase(BaseModel):
@@ -14,10 +15,9 @@ class SkillCreate(SkillBase):
 
 
 class SkillResponse(SkillBase):
-    id: uuid.UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: uuid.UUID
 
 
 class CandidateSkillBase(BaseModel):
@@ -29,10 +29,9 @@ class CandidateSkillCreate(CandidateSkillBase):
 
 
 class CandidateSkillResponse(CandidateSkillBase):
-    skill: SkillResponse
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    skill: SkillResponse
 
 
 class CandidateBase(BaseModel):
@@ -57,11 +56,13 @@ class CandidateUpdate(BaseModel):
 
 
 class CandidateResponse(CandidateBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     organization_id: uuid.UUID
     candidate_skills: List[CandidateSkillResponse] = []
+    resumes: List[ResumeResponse] = []
+    match_scores: List[MatchScoreResponse] = []
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
