@@ -25,13 +25,75 @@ class EmailGenerator:
         )
         response_text = await self.gemini_client.call_llm(prompt)
         clean_json = self._clean_json(response_text)
+        
+        parsed_data = {}
         try:
-            return json.loads(clean_json)
+            parsed_data = json.loads(clean_json)
         except Exception:
-            return {
-                "subject": f"Update regarding your application for {job_title}",
-                "body": f"Hello {candidate_name},\n\nWe are writing to update you on your application for the {job_title} role.\n\nBest regards,\n{recruiter_name}"
-            }
+            pass
+
+        subject = (
+            parsed_data.get("subject")
+            or parsed_data.get("email_subject")
+            or parsed_data.get("title")
+            or f"Update regarding your application for {job_title}"
+        )
+
+        body = (
+            parsed_data.get("body")
+            or parsed_data.get("email_body")
+            or parsed_data.get("content")
+            or parsed_data.get("message")
+            or parsed_data.get("text")
+            or parsed_data.get("body_text")
+        )
+
+        if not body or not isinstance(body, str) or not body.strip():
+            body = self._get_fallback_body(template_type, candidate_name, job_title, recruiter_name)
+
+        return {
+            "subject": subject.strip(),
+            "body": body.strip(),
+        }
+
+    def _get_fallback_body(self, template_type: str, candidate_name: str, job_title: str, recruiter_name: str) -> str:
+        tt = (template_type or "").lower()
+        if "interview" in tt or "invitation" in tt:
+            return (
+                f"Dear {candidate_name},\n\n"
+                f"Thank you for applying for the {job_title} role at HireMind. We were very impressed with your background and experience!\n\n"
+                f"We would love to invite you for an initial interview to discuss your qualifications further. Please let us know your availability over the coming days.\n\n"
+                f"Best regards,\n{recruiter_name}"
+            )
+        elif "shortlist" in tt:
+            return (
+                f"Dear {candidate_name},\n\n"
+                f"We are pleased to inform you that your application for the {job_title} position has been shortlisted for the next round!\n\n"
+                f"Our team will be in touch shortly with details regarding the technical assessment.\n\n"
+                f"Best regards,\n{recruiter_name}"
+            )
+        elif "rejection" in tt:
+            return (
+                f"Dear {candidate_name},\n\n"
+                f"Thank you for your interest in the {job_title} position and for taking the time to share your background with us.\n\n"
+                f"After careful review of all applications, we have decided to move forward with other candidates whose experience more closely matches our current requirements.\n\n"
+                f"We appreciate your interest in our company and wish you all the best in your job search.\n\n"
+                f"Best regards,\n{recruiter_name}"
+            )
+        elif "offer" in tt:
+            return (
+                f"Dear {candidate_name},\n\n"
+                f"We are thrilled to offer you the position of {job_title} at HireMind!\n\n"
+                f"We were incredibly impressed by your skills and experience during the interview process and believe you will be a fantastic addition to our team.\n\n"
+                f"Best regards,\n{recruiter_name}"
+            )
+        else:
+            return (
+                f"Dear {candidate_name},\n\n"
+                f"I hope this message finds you well. I wanted to follow up regarding your application for the {job_title} position.\n\n"
+                f"Please let us know if you have any questions or updates regarding your application status.\n\n"
+                f"Best regards,\n{recruiter_name}"
+            )
 
     def _clean_json(self, text: str) -> str:
         text = text.strip()
@@ -41,4 +103,8 @@ class EmailGenerator:
             text = text[3:]
         if text.endswith("```"):
             text = text[:-3]
+        import re
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            return match.group(0)
         return text.strip()

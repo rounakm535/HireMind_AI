@@ -69,11 +69,18 @@ class EmailLogResponse(BaseModel):
 
 
 class ResumeParsingResult(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     candidate_info: Dict[str, Any]
     skills: List[str]
     experience: List[Dict[str, Any]]
     education: List[Dict[str, Any]]
     summary: str
+    projects: Optional[List[Dict[str, Any]]] = None
+    certifications: Optional[List[str]] = None
+    designation: Optional[str] = None
+    links: Optional[List[str]] = None
+
 
 
 class ResumeMatchResult(BaseModel):

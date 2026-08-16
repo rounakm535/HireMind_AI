@@ -1,12 +1,18 @@
 import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 from pydantic import Field, PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
+        env_file=(str(BASE_DIR / ".env"), ".env"),
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
     )
 
     PROJECT_NAME: str = "HireMind AI"
@@ -24,11 +30,18 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> Any:
-        if isinstance(v, str) and v:
-            return v
         data = info.data
         if not data.get("USE_POSTGRES"):
-            return "sqlite+aiosqlite:///./hiremind_db.sqlite"
+            if isinstance(v, str) and v:
+                if v.startswith("sqlite+aiosqlite:///./"):
+                    db_filename = v.replace("sqlite+aiosqlite:///./", "")
+                    db_path = (BASE_DIR / db_filename).resolve().as_posix()
+                    return f"sqlite+aiosqlite:///{db_path}"
+                return v
+            db_path = (BASE_DIR / "hiremind_db.sqlite").resolve().as_posix()
+            return f"sqlite+aiosqlite:///{db_path}"
+        if isinstance(v, str) and v:
+            return v
         user = data.get("POSTGRES_USER")
         password = data.get("POSTGRES_PASSWORD")
         server = data.get("POSTGRES_SERVER")

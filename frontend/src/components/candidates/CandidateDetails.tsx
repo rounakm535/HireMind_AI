@@ -38,6 +38,11 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
 
   const experiences = parsedContent?.experience || [];
   const educations = parsedContent?.education || [];
+  const projects = parsedContent?.projects || [];
+  const certifications = parsedContent?.certifications || [];
+  const links = parsedContent?.links || [];
+  const summaryText = candidateResume?.summary || parsedContent?.summary;
+  const designation = parsedContent?.designation;
   const displayQuestions = questions.length > 0 ? questions : (candidateResume?.interview_questions || []);
 
   const formattedDate = new Date(candidate.created_at).toLocaleDateString(undefined, {
@@ -56,9 +61,16 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
             {candidate.last_name[0]}
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-              {candidate.first_name} {candidate.last_name}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-800 tracking-tight">
+                {candidate.first_name} {candidate.last_name}
+              </h2>
+              {designation && (
+                <Badge variant="brand" className="px-2 py-0.5 text-[10px] font-bold">
+                  {designation}
+                </Badge>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-slate-400 mt-1 font-semibold">
               <span className="flex items-center gap-1"><Mail size={13} /> {candidate.email}</span>
               {candidate.phone && <span className="flex items-center gap-1"><Phone size={13} /> {candidate.phone}</span>}
@@ -122,6 +134,18 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
         {/* Tab 1: Profile */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
+            {/* Professional Summary */}
+            {summaryText && (
+              <div className="bg-slate-50/70 border border-slate-100 rounded-xl p-4">
+                <h3 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                  <Sparkles size={14} className="text-brand-500" /> Candidate Summary
+                </h3>
+                <p className="text-[12px] text-slate-600 leading-relaxed font-medium">
+                  {summaryText}
+                </p>
+              </div>
+            )}
+
             {/* Skills */}
             <div>
               <h3 className="text-[13px] font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -191,6 +215,63 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
                 <p className="text-slate-400 text-xs">No education details extracted.</p>
               )}
             </div>
+
+            {/* Projects Section */}
+            {projects.length > 0 && (
+              <div className="pt-4 border-t border-slate-50">
+                <h3 className="text-[13px] font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Briefcase size={15} className="text-brand-500" /> Projects
+                </h3>
+                <div className="space-y-3">
+                  {projects.map((proj: any, idx: number) => (
+                    <div key={idx} className="bg-slate-50/50 border border-slate-100 rounded-xl p-3.5">
+                      <h4 className="text-[13px] font-bold text-slate-800">{proj.title || `Project ${idx + 1}`}</h4>
+                      {proj.description && (
+                        <p className="text-[12px] text-slate-500 mt-1 leading-relaxed font-medium">{proj.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Certifications & Links */}
+            {(certifications.length > 0 || links.length > 0) && (
+              <div className="pt-4 border-t border-slate-50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {certifications.length > 0 && (
+                  <div>
+                    <h3 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Certifications
+                    </h3>
+                    <ul className="space-y-1 text-[12px] text-slate-600 font-medium list-disc list-inside">
+                      {certifications.map((cert: string, idx: number) => (
+                        <li key={idx}>{cert}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {links.length > 0 && (
+                  <div>
+                    <h3 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Links & Portfolios
+                    </h3>
+                    <div className="flex flex-wrap gap-2 text-[12px]">
+                      {links.map((link: string, idx: number) => (
+                        <a
+                          key={idx}
+                          href={link.startsWith('http') ? link : `https://${link}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand-600 hover:underline font-semibold"
+                        >
+                          {link}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

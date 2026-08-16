@@ -41,12 +41,69 @@ class ResumeService:
         return f"/uploads/{candidate_id}/{saved_filename}"
 
     async def upload_resume(
-        self, candidate_id: uuid.UUID, file_name: str, file_content: bytes, organization_id: uuid.UUID
+        self,
+        candidate_id: Optional[uuid.UUID],
+        file_name: str,
+        file_content: bytes,
+        organization_id: uuid.UUID,
     ) -> Resume:
-        # Validate candidate belongs to organization
-        candidate = await self.candidate_repo.get_by_id(candidate_id)
-        if not candidate or candidate.organization_id != organization_id:
-            raise EntityNotFoundError("Candidate not found in this organization.")
+        # Extract raw text content from the uploaded resume file (PDF or DOCX)
+        raw_text_extracted = extract_text(file_name, file_content)
+        if not raw_text_extracted:
+            raw_text_extracted = f"Resume document: {file_name}.\n"
+
+        # Parse resume using Gemini LLM
+        parsed_result = await self.gemini_client.parse_resume(raw_text_extracted)
+        parsed_dict = parsed_result.model_dump() if hasattr(parsed_result, "model_dump") else dict(parsed_result)
+        candidate_info = parsed_dict.get("candidate_info", {})
+
+        candidate = None
+        if candidate_id:
+            candidate = await self.candidate_repo.get_by_id(candidate_id)
+            if not candidate or candidate.organization_id != organization_id:
+                raise EntityNotFoundError("Candidate not found in this organization.")
+        else:
+            # Auto-create candidate profile from extracted resume info
+            from app.models.candidate import Candidate, CandidateStatus
+            extracted_first = candidate_info.get("first_name") or "Applicant"
+            extracted_last = candidate_info.get("last_name") or "Candidate"
+            extracted_email = candidate_info.get("email") or f"applicant_{uuid.uuid4().hex[:8]}@extracted.com"
+            extracted_phone = candidate_info.get("phone")
+
+            new_cand = Candidate(
+                organization_id=organization_id,
+                first_name=extracted_first,
+                last_name=extracted_last,
+                email=extracted_email,
+                phone=extracted_phone,
+                status=CandidateStatus.NEW,
+            )
+            candidate = await self.candidate_repo.create(new_cand)
+            candidate_id = candidate.id
+
+        # Update candidate attributes if extracted details are richer or candidate has placeholders
+        if candidate_info:
+            ext_first = candidate_info.get("first_name")
+            ext_last = candidate_info.get("last_name")
+            ext_email = candidate_info.get("email")
+            ext_phone = candidate_info.get("phone")
+
+            updated = False
+            if ext_first and ext_first.strip() and ext_first not in ["Applicant", "Candidate"]:
+                candidate.first_name = ext_first.strip()
+                updated = True
+            if ext_last and ext_last.strip() and ext_last not in ["Applicant", "Candidate"]:
+                candidate.last_name = ext_last.strip()
+                updated = True
+            if ext_email and ext_email.strip() and "example.com" not in ext_email:
+                candidate.email = ext_email.strip()
+                updated = True
+            if ext_phone and ext_phone.strip():
+                candidate.phone = ext_phone.strip()
+                updated = True
+
+            if updated:
+                await self.candidate_repo.update(candidate)
 
         # Upload to AWS S3 if credentials are set, otherwise use local storage
         from app.core.config import settings
@@ -68,14 +125,6 @@ class ResumeService:
                 file_url = await self._save_local(candidate_id, file_name, file_content)
         else:
             file_url = await self._save_local(candidate_id, file_name, file_content)
-
-        # Extract raw text content from the uploaded resume file (PDF or DOCX)
-        raw_text_extracted = extract_text(file_name, file_content)
-        if not raw_text_extracted:
-            raw_text_extracted = f"Resume of {candidate.first_name} {candidate.last_name}.\nFile: {file_name}.\n"
-
-        # Parse resume initially using Gemini
-        parsed_result = await self.gemini_client.parse_resume(raw_text_extracted)
 
         # Populate CandidateSkill table with extracted skills
         skills_list = parsed_result.skills if hasattr(parsed_result, "skills") else []
@@ -110,11 +159,13 @@ class ResumeService:
             file_url=file_url,
             file_name=file_name,
             raw_text=raw_text_extracted,
-            parsed_content=parsed_result.model_dump(),
-            summary=parsed_result.summary,
+            parsed_content=parsed_dict,
+            summary=parsed_result.summary if hasattr(parsed_result, "summary") else parsed_dict.get("summary"),
         )
 
-        return await self.resume_repo.create(resume)
+        created_resume = await self.resume_repo.create(resume)
+        fetched_resume = await self.resume_repo.get_by_id(created_resume.id)
+        return fetched_resume or created_resume
 
     async def get_resume(self, resume_id: uuid.UUID, organization_id: uuid.UUID) -> Resume:
         resume = await self.resume_repo.get_by_id(resume_id)
@@ -238,11 +289,13 @@ class ResumeService:
             recruiter_name="HireMind Recruiting Team",
         )
 
+        body_text = email_data.get("body") or email_data.get("email_body") or email_data.get("content") or ""
+
         email_log = EmailLog(
             sender_id=sender_id,
             recipient_email=candidate.email,
             subject=email_data.get("subject", f"Update on your application for {job.title}"),
-            body=email_data.get("body", ""),
+            body=body_text,
             status="SENT",
         )
         return await self.resume_repo.create_email_log(email_log)

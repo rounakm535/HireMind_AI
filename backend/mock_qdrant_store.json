@@ -3082,25 +3082,12 @@
       "last_name": "Mishra",
       "email": "mishra.rounak15@gmail.com",
       "skills": [
-        "C",
-        "SQL",
         "Python",
-        "JAVA",
-        "HTML5",
-        "CSS3",
-        "Pandas",
-        "Numpy",
-        "Beautiful Soup",
-        "Selenium",
-        "Flask",
         "FastAPI",
-        "Streamlit",
-        "MySQL",
-        "MongoDB",
-        "Git",
-        "GitHub",
-        "Visual Studio Code",
-        "Pycharm"
+        "React",
+        "PostgreSQL",
+        "Docker",
+        "Git"
       ]
     }
   }

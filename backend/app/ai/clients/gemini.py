@@ -25,9 +25,10 @@ class GeminiClient:
             return self._mock_response(prompt)
         try:
             import asyncio
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None, lambda: self.model.generate_content(prompt)
+            loop = asyncio.get_running_loop()
+            response = await asyncio.wait_for(
+                loop.run_in_executor(None, lambda: self.model.generate_content(prompt)),
+                timeout=5.0,
             )
             return response.text
         except Exception as e:
@@ -37,8 +38,13 @@ class GeminiClient:
     async def parse_resume(self, raw_text: str) -> ResumeParsingResult:
         from app.ai.parser.resume_parser import ResumeParser
         parser = ResumeParser(self)
-        data = await parser.parse(raw_text)
-        return ResumeParsingResult(**data)
+        try:
+            data = await parser.parse(raw_text)
+            return ResumeParsingResult(**data)
+        except Exception as e:
+            logger.warning(f"Resume parsing error ({e}); using safe fallback result.")
+            fallback_data = parser._fallback(raw_text)
+            return ResumeParsingResult(**fallback_data)
 
     async def match_resume(
         self, resume_text: str, job_title: str, job_requirements: str, job_description: str
