@@ -59,7 +59,7 @@ async def seed_demo_data_if_needed():
             ]
             skill_map = {}
             for s_name in skills_data:
-                sk = Skill(id=uuid.uuid4(), name=s_name, category="Engineering")
+                sk = Skill(id=uuid.uuid4(), name=s_name)
                 session.add(sk)
                 skill_map[s_name] = sk
             await session.flush()
