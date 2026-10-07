@@ -39,8 +39,9 @@ const UploadResume: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.type !== 'application/pdf' && selectedFile.name.split('.').pop() !== 'docx') {
-        setFileError('Only PDF and DOCX files are allowed.');
+      const ext = selectedFile.name.split('.').pop()?.toLowerCase();
+      if (!['pdf', 'docx', 'doc', 'txt'].includes(ext || '')) {
+        setFileError('Allowed formats: PDF, DOCX, DOC, TXT.');
         setFile(null);
       } else {
         setFileError(null);
@@ -148,13 +149,13 @@ const UploadResume: React.FC = () => {
             <div className="border-2 border-dashed border-slate-200 hover:border-brand-400 bg-slate-50/50 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer relative group transition">
               <input
                 type="file"
-                accept=".pdf,.docx"
+                accept=".pdf,.docx,.doc,.txt"
                 onChange={handleFileChange}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
               <UploadCloud size={32} className="text-slate-400 group-hover:text-brand-500 transition mb-3" />
               <p className="text-[12px] font-bold text-slate-700 leading-tight">Drag and drop file here</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Accepts PDF, DOCX up to 10MB</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-1">Accepts PDF, DOCX, TXT up to 10MB</p>
             </div>
           ) : (
             <div className="border border-brand-100 bg-brand-50/20 rounded-xl p-4 flex items-center justify-between gap-3">

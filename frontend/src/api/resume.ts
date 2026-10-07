@@ -49,4 +49,14 @@ export const resumeApi = {
     });
     return response.data;
   },
+
+  sendEmail: async (data: { candidateId?: string; recipientEmail: string; subject: string; body: string }): Promise<EmailLog> => {
+    const response = await apiClient.post<EmailLog>('/emails/send', {
+      candidate_id: data.candidateId,
+      recipient_email: data.recipientEmail,
+      subject: data.subject,
+      body: data.body,
+    });
+    return response.data;
+  },
 };

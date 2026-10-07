@@ -22,11 +22,18 @@ from app.api.v1.emails import router as emails_router
 from app.api.v1.ai import router as ai_router
 
 
+from app.db.seed import seed_demo_data_if_needed
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"DATABASE_URL_LOG: Using database connection URL: {settings.DATABASE_URL}")
     # Initialize SQLite or PostgreSQL tables automatically
     await init_db()
+    try:
+        await seed_demo_data_if_needed()
+    except Exception as e:
+        print(f"Seed startup notice: {e}")
     yield
 
 
@@ -105,3 +112,9 @@ app.include_router(ai_router, prefix=settings.API_V1_STR)
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "healthy", "service": settings.PROJECT_NAME}
+
+
+@app.post("/api/v1/seed", tags=["Seed"])
+async def seed_demo_database():
+    await seed_demo_data_if_needed()
+    return {"message": "Demo data successfully seeded."}

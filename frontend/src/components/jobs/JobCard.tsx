@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job } from '../../types';
 import Badge from '../common/Badge';
-import { Briefcase, MapPin, Edit3, Trash2 } from 'lucide-react';
+import { MapPin, Edit3, Trash2 } from 'lucide-react';
 import Button from '../common/Button';
 
 interface JobCardProps {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { fetchJobs, deleteJobPost } from '../../redux/slices/jobSlice';
@@ -24,7 +24,7 @@ const JobList: React.FC = () => {
   const [jobType, setJobType] = useState<string>('ALL');
   const [status, setStatus] = useState<string>('ALL');
 
-  const loadJobs = (page: number = 1) => {
+  const loadJobs = useCallback((page: number = 1) => {
     const params: any = {
       page,
       size: 10,
@@ -34,11 +34,11 @@ const JobList: React.FC = () => {
     if (status !== 'ALL') params.status = status as JobStatus;
 
     dispatch(fetchJobs(params));
-  };
+  }, [search, jobType, status, dispatch]);
 
   useEffect(() => {
     loadJobs(1);
-  }, [search, jobType, status, dispatch]);
+  }, [loadJobs]);
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this job post?')) {

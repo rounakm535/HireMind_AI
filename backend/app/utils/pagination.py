@@ -1,6 +1,6 @@
 from math import ceil
 from typing import Generic, List, TypeVar
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar("T")
 
@@ -19,6 +19,7 @@ class PaginationParams(BaseModel):
 
 
 class Page(BaseModel, Generic[T]):
+    model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
     items: List[T]
     total: int
     page: int

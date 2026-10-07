@@ -12,7 +12,7 @@ import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
 import EmailPreview from '../../components/emails/EmailPreview';
 import Loader from '../../components/common/Loader';
-import { Sparkles, Mail, AlertTriangle } from 'lucide-react';
+import { Sparkles, Mail } from 'lucide-react';
 
 const emailSchema = z.object({
   candidate_id: z.string().min(1, 'Please select a candidate'),

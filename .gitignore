@@ -7,10 +7,18 @@ frontend/.env
 # Databases
 *.db
 *.sqlite
-backend/hiremind_db.sqlite
+*.sqlite3
+backend/*.sqlite
+backend/*.db
+
+# Uploads & Runtime Storage
+uploads/
+**/uploads/
+backend/uploads/
+backend/mock_qdrant_store.json
 
 # Python
-__pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -26,8 +34,10 @@ dist/
 .vite
 .eslintcache
 
-# IDE / Editor config
+# IDE / Editor / System
 .vscode/
 .idea/
 *.suo
 *.swp
+*.log
+.DS_Store

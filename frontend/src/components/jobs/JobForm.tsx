@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Job, JobType, JobStatus } from '../../types';
+import { Job } from '../../types';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';

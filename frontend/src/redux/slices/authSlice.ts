@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { User, Token } from '../../types';
+import { User } from '../../types';
 import { authApi } from '../../api/auth';
 
 interface AuthState {
@@ -8,6 +8,18 @@ interface AuthState {
   loading: boolean;
   error: string | null;
 }
+
+const getErrorMessage = (error: any, fallback: string): string => {
+  const msg = error.response?.data?.error?.message;
+  if (typeof msg === 'string' && msg) return msg;
+  const detail = error.response?.data?.detail;
+  if (typeof detail === 'string' && detail) return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+  }
+  if (typeof error.message === 'string' && error.message) return error.message;
+  return fallback;
+};
 
 const initialState: AuthState = {
   user: null,
@@ -26,7 +38,9 @@ export const loginUser = createAsyncThunk(
       const user = await authApi.getMe();
       return user;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error?.message || 'Login failed');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      return rejectWithValue(getErrorMessage(error, 'Login failed. Please check your credentials.'));
     }
   }
 );
@@ -38,7 +52,7 @@ export const registerUser = createAsyncThunk(
       const user = await authApi.register(formData);
       return user;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error?.message || 'Registration failed');
+      return rejectWithValue(getErrorMessage(error, 'Registration failed. Please try again.'));
     }
   }
 );
@@ -49,7 +63,9 @@ export const fetchCurrentUser = createAsyncThunk(
     try {
       return await authApi.getMe();
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error?.message || 'Failed to fetch user session');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch user session'));
     }
   }
 );
@@ -80,10 +96,14 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.error = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         state.loading = false;
         state.error = action.payload as string;
+        state.user = null;
         state.isAuthenticated = false;
       })
       // Fetch current user
@@ -95,9 +115,11 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = true;
       })
-      .addCase(fetchCurrentUser.rejected, (state, action) => {
+      .addCase(fetchCurrentUser.rejected, (state) => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = null; // Do not show fetch session error on login screen
         state.user = null;
         state.isAuthenticated = false;
       })

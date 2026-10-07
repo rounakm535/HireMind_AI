@@ -31,3 +31,8 @@ class EmailRequest(BaseModel):
     job_title: str
     recruiter_name: str
     additional_context: Optional[str] = ""
+
+class CompareRequest(BaseModel):
+    job_description: Optional[str] = "General Tech Role"
+    candidates: List[Dict[str, Any]]
+

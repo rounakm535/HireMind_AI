@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { fetchDashboardStats } from '../redux/slices/dashboardSlice';
 import { fetchCandidates } from '../redux/slices/candidateSlice';
@@ -16,14 +16,14 @@ const Dashboard: React.FC = () => {
   const { stats, loading } = useAppSelector((state) => state.dashboard);
   const { candidates } = useAppSelector((state) => state.candidates);
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     dispatch(fetchDashboardStats());
     dispatch(fetchCandidates({ size: 5 }));
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     loadData();
-  }, [dispatch]);
+  }, [loadData]);
 
   if (loading && !stats) {
     return (

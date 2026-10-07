@@ -192,33 +192,26 @@ class ResumeService:
         if not job or job.organization_id != organization_id:
             raise EntityNotFoundError("Job not found under this organization.")
 
-        # Execute the LangGraph screening pipeline!
-        inputs = {
-            "resume_raw_text": resume.raw_text or "",
-            "job_title": job.title,
-            "job_description": job.description,
-            "job_requirements": job.requirements,
-        }
-        
-        # Run graph workflow
-        graph_output = await resume_screening_graph.ainvoke(inputs)
+        from app.ai.matcher.resume_matcher import ResumeMatcher
+        matcher = ResumeMatcher(self.gemini_client)
 
-        # Save match score
-        score_val = graph_output.get("match_score", 75.0)
-        explanation = graph_output.get("fit_explanation") or graph_output.get("hiring_recommendation") or "Automated AI candidate match evaluation completed."
-        gaps = graph_output.get("skill_gap", {})
+        screening_output = await matcher.full_screen(
+            resume_text=resume.raw_text or "",
+            job_title=job.title,
+            job_description=job.description or "",
+            job_requirements=job.requirements or "",
+        )
 
-        matching_skills = graph_output.get("matching_skills", [])
-        missing_skills = gaps.get("missing_skills") or graph_output.get("missing_skills", [])
-        additional_skills = gaps.get("priority_skills") or gaps.get("strengths") or []
+        score_val = float(screening_output.get("score", 75.0))
+        explanation = screening_output.get("fit_explanation") or "Automated AI candidate match evaluation completed."
 
         skill_gap_analysis = {
-            "matched_skills": matching_skills,
-            "missing_skills": missing_skills,
-            "additional_skills": additional_skills,
-            "recommended_learning": gaps.get("recommended_learning", []),
-            "strengths": gaps.get("strengths", []),
-            "weaknesses": gaps.get("weaknesses", []),
+            "matched_skills": screening_output.get("matching_skills", []),
+            "missing_skills": screening_output.get("missing_skills", []),
+            "additional_skills": screening_output.get("additional_skills", []),
+            "recommended_learning": screening_output.get("recommended_learning", []),
+            "strengths": screening_output.get("strengths", []),
+            "weaknesses": screening_output.get("weaknesses", []),
         }
 
         # Check if match already exists
@@ -240,7 +233,7 @@ class ResumeService:
             created_match = await self.resume_repo.create_match_score(match_score)
 
         # Save generated interview questions
-        questions = graph_output.get("suggested_questions", [])
+        questions = screening_output.get("suggested_questions", [])
         for q in questions:
             iq = InterviewQuestion(
                 resume_id=resume_id,
@@ -286,7 +279,7 @@ class ResumeService:
             template_type=template_type,
             candidate_name=f"{candidate.first_name} {candidate.last_name}",
             job_title=job.title,
-            recruiter_name="HireMind Recruiting Team",
+            recruiter_name="HireMind Recruiting Team <hiremindrecruitingteam@gmail.com>",
         )
 
         body_text = email_data.get("body") or email_data.get("email_body") or email_data.get("content") or ""

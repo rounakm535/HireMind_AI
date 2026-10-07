@@ -24,12 +24,26 @@ const AppLayout = lazy(() => import('./components/layout/AppLayout'));
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const [isCheckingAuth, setIsCheckingAuth] = React.useState(true);
 
   useEffect(() => {
-    if (isAuthenticated && !user) {
-      dispatch(fetchCurrentUser());
+    const token = localStorage.getItem('access_token');
+    if (token && !user) {
+      dispatch(fetchCurrentUser()).finally(() => {
+        setIsCheckingAuth(false);
+      });
+    } else {
+      setIsCheckingAuth(false);
     }
-  }, [isAuthenticated, user, dispatch]);
+  }, [dispatch, user]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+        <Loader size="lg" />
+      </div>
+    );
+  }
 
   return (
     <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center"><Loader size="lg" /></div>}>

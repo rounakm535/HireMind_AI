@@ -11,7 +11,8 @@ import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
 import EditCandidateModal from '../../components/candidates/EditCandidateModal';
 import DeleteConfirmModal from '../../components/common/DeleteConfirmModal';
-import { ArrowLeft, Play, Sparkles, Pencil, Trash2 } from 'lucide-react';
+import InterviewQuestionsModal from '../../components/candidates/InterviewQuestionsModal';
+import { ArrowLeft, Play, Sparkles, Pencil, Trash2, HelpCircle } from 'lucide-react';
 
 const CandidateProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,7 @@ const CandidateProfile: React.FC = () => {
   const [selectedJobId, setSelectedJobId] = useState<string>('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isQuestionsModalOpen, setIsQuestionsModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -41,7 +43,7 @@ const CandidateProfile: React.FC = () => {
   const handleScreen = async () => {
     if (!id || !selectedJobId || !currentCandidate) return;
     
-    // Find candidate's resume (use first resume found, since upload_resume saves it)
+    // Find candidate's resume (use first resume found)
     const resumeId = currentCandidate.resumes?.[0]?.id;
     if (!resumeId) {
       alert('This candidate has no uploaded resume to parse. Please upload a resume first.');
@@ -95,14 +97,26 @@ const CandidateProfile: React.FC = () => {
       {/* Header */}
       <PageHeader title="Candidate Profile" subtitle="Detailed information and AI match parameters evaluation.">
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsQuestionsModalOpen(true)}
+            className="gap-1.5 h-9 bg-brand-50 hover:bg-brand-100/80 text-brand-600 border-brand-200"
+          >
+            <HelpCircle size={15} />
+            <span>Interview Prep</span>
+          </Button>
+
           <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)} className="gap-1.5 h-9">
             <Pencil size={15} />
             <span>Edit Details</span>
           </Button>
+
           <Button variant="danger" size="sm" onClick={() => setIsDeleteModalOpen(true)} className="gap-1.5 h-9">
             <Trash2 size={15} />
             <span>Delete Candidate</span>
           </Button>
+
           <Button variant="outline" size="sm" onClick={() => navigate('/candidates')} className="gap-1.5 h-9">
             <ArrowLeft size={16} />
             <span>Back to List</span>
@@ -165,6 +179,20 @@ const CandidateProfile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Interview Questions Modal */}
+      {isQuestionsModalOpen && (
+        <InterviewQuestionsModal
+          isOpen={isQuestionsModalOpen}
+          onClose={() => setIsQuestionsModalOpen(false)}
+          candidate={currentCandidate}
+          existingQuestions={
+            Array.isArray(candidateResume?.interview_questions)
+              ? candidateResume?.interview_questions
+              : candidateResume?.interview_questions?.questions
+          }
+        />
+      )}
 
       {/* Edit Modal */}
       {isEditModalOpen && (

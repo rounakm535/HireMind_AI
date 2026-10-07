@@ -19,6 +19,7 @@ from app.schemas.ai import (
     QuestionsRequest,
     ChatRequest,
     EmailRequest,
+    CompareRequest,
 )
 
 router = APIRouter(prefix="/ai", tags=["AI Processing Engine"])
@@ -138,4 +139,17 @@ async def generate_recruiter_email(
         job_title=payload.job_title,
         recruiter_name=payload.recruiter_name,
         additional_context=payload.additional_context
+    )
+
+
+@router.post("/compare", status_code=status.HTTP_200_OK)
+async def compare_candidates_side_by_side(
+    payload: CompareRequest,
+    current_user: User = Depends(get_current_user),
+    ranker_service: CandidateRanker = Depends(get_ranker)
+) -> Dict[str, Any]:
+    """Side-by-side comparative analysis of selected candidate profiles."""
+    return await ranker_service.compare_candidates(
+        job_description=payload.job_description or "General Role Requirements",
+        candidates=payload.candidates
     )

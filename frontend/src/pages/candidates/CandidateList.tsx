@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { fetchCandidates, deleteCandidateProfile } from '../../redux/slices/candidateSlice';
@@ -10,10 +10,13 @@ import CandidateCard from '../../components/candidates/CandidateCard';
 import CandidateTable from '../../components/candidates/CandidateTable';
 import EditCandidateModal from '../../components/candidates/EditCandidateModal';
 import DeleteConfirmModal from '../../components/common/DeleteConfirmModal';
+import SendEmailModal from '../../components/candidates/SendEmailModal';
+import CandidateCompareModal from '../../components/candidates/CandidateCompareModal';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
-import { Upload, LayoutGrid, List } from 'lucide-react';
+import { Upload, LayoutGrid, List, Sparkles, Database, CheckSquare, Square } from 'lucide-react';
 import { Candidate, CandidateStatus } from '../../types';
+import { aiApi } from '../../api/ai';
 
 const CandidateList: React.FC = () => {
   const navigate = useNavigate();
@@ -25,24 +28,50 @@ const CandidateList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('ALL');
 
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
   const [selectedCandidateForEdit, setSelectedCandidateForEdit] = useState<Candidate | null>(null);
   const [selectedCandidateForDelete, setSelectedCandidateForDelete] = useState<Candidate | null>(null);
+  const [selectedCandidateForEmail, setSelectedCandidateForEmail] = useState<Candidate | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
-  const loadCandidates = (page: number = 1) => {
-    const params: any = {
-      page,
-      size: 10,
-    };
-    if (search) params.search = search;
-    if (status !== 'ALL') params.status = status as CandidateStatus;
+  const loadCandidates = useCallback(
+    (page: number = 1) => {
+      const params: any = {
+        page,
+        size: 10,
+      };
+      if (search) params.search = search;
+      if (status !== 'ALL') params.status = status as CandidateStatus;
 
-    dispatch(fetchCandidates(params));
-  };
+      dispatch(fetchCandidates(params));
+    },
+    [search, status, dispatch]
+  );
 
   useEffect(() => {
     loadCandidates(1);
-  }, [search, status, dispatch]);
+  }, [loadCandidates]);
+
+  const toggleSelectCandidate = (id: string) => {
+    setSelectedCandidateIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSeedData = async () => {
+    setSeeding(true);
+    try {
+      await aiApi.seedDemoData();
+      loadCandidates(1);
+    } catch (err) {
+      console.error('Failed to seed demo data:', err);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const handleDeleteCandidate = async () => {
     if (!selectedCandidateForDelete) return;
@@ -54,6 +83,8 @@ const CandidateList: React.FC = () => {
     }
     setDeleting(false);
   };
+
+  const selectedCandidatesToCompare = candidates.filter((c) => selectedCandidateIds.includes(c.id));
 
   const statusOptions = [
     { value: 'ALL', label: 'All Statuses' },
@@ -68,11 +99,33 @@ const CandidateList: React.FC = () => {
   return (
     <div className="font-sans space-y-6">
       {/* Header */}
-      <PageHeader title="Candidate Database" subtitle="Browse, search, and screen applicant records.">
-        <Button variant="primary" size="sm" onClick={() => navigate('/resume/upload')} className="gap-1.5 h-9">
-          <Upload size={16} />
-          <span>Upload Resume</span>
-        </Button>
+      <PageHeader
+        title="Candidate Database"
+        subtitle="Browse, search, and screen applicant records with match scores, side-by-side comparisons, and direct emailing."
+      >
+        <div className="flex items-center gap-2">
+          {selectedCandidateIds.length >= 2 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsCompareModalOpen(true)}
+              className="gap-1.5 h-9 bg-amber-500 hover:bg-amber-600 text-white font-bold"
+            >
+              <Sparkles size={15} />
+              <span>Compare Selected ({selectedCandidateIds.length})</span>
+            </Button>
+          )}
+
+          <Button variant="outline" size="sm" onClick={handleSeedData} isLoading={seeding} className="gap-1.5 h-9">
+            <Database size={15} />
+            <span>Load Demo Data</span>
+          </Button>
+
+          <Button variant="primary" size="sm" onClick={() => navigate('/resume/upload')} className="gap-1.5 h-9">
+            <Upload size={16} />
+            <span>Upload Resume</span>
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Filter Toolbar */}
@@ -81,11 +134,7 @@ const CandidateList: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-3.5">
           <div className="w-44">
-            <Select
-              options={statusOptions}
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            />
+            <Select options={statusOptions} value={status} onChange={(e) => setStatus(e.target.value)} />
           </div>
 
           {/* Toggle View */}
@@ -95,6 +144,7 @@ const CandidateList: React.FC = () => {
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'grid' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
               }`}
+              title="Grid View"
             >
               <LayoutGrid size={15} />
             </button>
@@ -103,6 +153,7 @@ const CandidateList: React.FC = () => {
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'table' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
               }`}
+              title="Table View"
             >
               <List size={15} />
             </button>
@@ -116,30 +167,67 @@ const CandidateList: React.FC = () => {
           <Loader size="lg" className="text-brand-500" />
         </div>
       ) : candidates.length === 0 ? (
-        <div className="text-center py-16 bg-white border border-slate-100 rounded-2xl">
-          <p className="text-slate-400 text-sm">No candidate records found matching your filters.</p>
+        <div className="text-center py-16 bg-white border border-slate-100 rounded-2xl space-y-3">
+          <p className="text-slate-400 text-sm">No candidate records found in your database.</p>
+          <Button variant="primary" size="sm" onClick={handleSeedData} isLoading={seeding} className="gap-1.5">
+            <Database size={15} />
+            <span>Populate Sample Demo Candidates</span>
+          </Button>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {candidates.map((candidate) => (
-            <CandidateCard
-              key={candidate.id}
-              candidate={candidate}
-              onEdit={(c) => setSelectedCandidateForEdit(c)}
-              onDelete={(c) => setSelectedCandidateForDelete(c)}
-            />
-          ))}
+          {candidates.map((candidate) => {
+            const isSelected = selectedCandidateIds.includes(candidate.id);
+            return (
+              <div key={candidate.id} className="relative group">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelectCandidate(candidate.id);
+                  }}
+                  className={`absolute top-4 left-4 z-10 p-1.5 rounded-lg border transition ${
+                    isSelected
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-white/90 text-slate-400 border-slate-200 hover:border-brand-500'
+                  }`}
+                  title={isSelected ? 'Deselect candidate' : 'Select for comparison'}
+                >
+                  {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                <div className={isSelected ? 'ring-2 ring-brand-500 rounded-2xl' : ''}>
+                  <CandidateCard
+                    candidate={candidate}
+                    onEdit={(c) => setSelectedCandidateForEdit(c)}
+                    onDelete={(c) => setSelectedCandidateForDelete(c)}
+                    onSendEmail={(c) => setSelectedCandidateForEmail(c)}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <CandidateTable
           candidates={candidates}
           onEdit={(c) => setSelectedCandidateForEdit(c)}
           onDelete={(c) => setSelectedCandidateForDelete(c)}
+          onSendEmail={(c) => setSelectedCandidateForEmail(c)}
         />
       )}
 
       {/* Pagination */}
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={loadCandidates} />
+
+      {/* Comparison Modal */}
+      {isCompareModalOpen && (
+        <CandidateCompareModal
+          isOpen={isCompareModalOpen}
+          onClose={() => setIsCompareModalOpen(false)}
+          candidates={selectedCandidatesToCompare}
+          onSendEmail={(c) => setSelectedCandidateForEmail(c)}
+        />
+      )}
 
       {/* Edit Modal */}
       {selectedCandidateForEdit && (
@@ -148,6 +236,15 @@ const CandidateList: React.FC = () => {
           onClose={() => setSelectedCandidateForEdit(null)}
           candidate={selectedCandidateForEdit}
           onSuccess={() => loadCandidates(currentPage)}
+        />
+      )}
+
+      {/* Direct Email Modal */}
+      {selectedCandidateForEmail && (
+        <SendEmailModal
+          isOpen={Boolean(selectedCandidateForEmail)}
+          onClose={() => setSelectedCandidateForEmail(null)}
+          candidate={selectedCandidateForEmail}
         />
       )}
 

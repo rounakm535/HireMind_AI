@@ -76,5 +76,13 @@ class Settings(BaseSettings):
     AWS_S3_BUCKET_NAME: str = "hiremind-resumes"
     AWS_REGION: str = "us-east-1"
 
+    # SMTP Email Configuration
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "hiremindrecruitingteam@gmail.com"
+    SMTP_PASSWORD: Optional[str] = "hndhkukqtyjlelyg"
+    SMTP_FROM_EMAIL: str = "hiremindrecruitingteam@gmail.com"
+    SMTP_FROM_NAME: str = "HireMind Recruiting Team"
+
 
 settings = Settings()

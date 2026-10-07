@@ -47,4 +47,5 @@ Rules:
 - Do not wrap the output in markdown fences (like ```json ... ```).
 - Output ONLY valid, parseable JSON.
 - Ensure all email addresses, names, links, and designations are cleanly isolated.
+- Extract actual text from the raw resume only. NEVER include prompt text, JSON schema instructions, or literal placeholder words like "string" in the field values.
 """

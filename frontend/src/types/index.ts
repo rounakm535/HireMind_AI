@@ -67,7 +67,7 @@ export interface Resume {
   parsed_content: any | null;
   raw_text: string | null;
   summary: string | null;
-  interview_questions?: InterviewQuestion[];
+  interview_questions?: any;
   created_at: string;
   updated_at: string;
 }

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import Button from './Button';
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,6 +8,7 @@ interface ModalProps {
   children: React.ReactNode;
   footerActions?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  maxWidth?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -18,6 +18,7 @@ const Modal: React.FC<ModalProps> = ({
   children,
   footerActions,
   size = 'md',
+  maxWidth,
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -42,9 +43,11 @@ const Modal: React.FC<ModalProps> = ({
     xl: 'max-w-4xl',
   };
 
+  const containerWidthClass = maxWidth || sizes[size];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px] font-sans">
-      <div className={`w-full bg-white rounded-2xl shadow-xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden ${sizes[size]}`}>
+      <div className={`w-full bg-white rounded-2xl shadow-xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden ${containerWidthClass}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
           <h2 className="text-[15px] font-bold text-slate-800 tracking-tight">{title}</h2>

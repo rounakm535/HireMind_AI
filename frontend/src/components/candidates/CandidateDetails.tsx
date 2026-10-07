@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { Candidate, MatchScore, InterviewQuestion } from '../../types';
 import Badge from '../common/Badge';
 import {
-  User,
   Mail,
   Phone,
-  Calendar,
   Sparkles,
   BookOpen,
   Briefcase,
@@ -367,7 +365,7 @@ const CandidateDetails: React.FC<CandidateDetailsProps> = ({ candidate, matchSco
                 <p className="text-[13px] text-slate-500 font-medium">No suggested questions available yet. Run AI screening to generate interview prep questions.</p>
               </div>
             ) : (
-              displayQuestions.map((q, idx) => (
+              displayQuestions.map((q: any, idx: number) => (
                 <div key={q.id || idx} className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm font-sans flex gap-3">
                   <div className="w-7 h-7 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
                     Q
