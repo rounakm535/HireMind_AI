@@ -1,9 +1,42 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+export const getBackendBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.replace(/\/api(\/v\d+)?\/?$/, '').replace(/\/+$/, '');
+  }
+
+  // If running in browser on production domain (e.g., Vercel)
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return 'https://hiremind-ai-backend-o4ua.onrender.com';
+  }
+
+  return 'http://localhost:8000';
+};
+
+export const getApiBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.replace(/\/+$/, '');
+  }
+
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return 'https://hiremind-ai-backend-o4ua.onrender.com/api/v1';
+  }
+
+  return 'http://localhost:8000/api/v1';
+};
 
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -37,7 +70,7 @@ apiClient.interceptors.response.use(
       if (refreshToken) {
         try {
           // Attempt token refresh
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          const response = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {
             refresh_token: refreshToken,
           });
           

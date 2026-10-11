@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Resume } from '../../types';
 import { FileText, ExternalLink, Eye, AlignLeft } from 'lucide-react';
 import Button from '../common/Button';
+import { getBackendBaseUrl } from '../../api/axios';
 
 interface ResumeViewerProps {
   resume: Resume;
@@ -10,10 +11,10 @@ interface ResumeViewerProps {
 const ResumeViewer: React.FC<ResumeViewerProps> = ({ resume }) => {
   const [viewMode, setViewMode] = useState<'document' | 'text'>('document');
 
-  // Compute full file URL for PDF iframe preview
+  // Compute full file URL for PDF preview using the active backend base URL
   const fileFullUrl = resume.file_url.startsWith('http')
     ? resume.file_url
-    : `${window.location.protocol}//${window.location.hostname}:8000${resume.file_url}`;
+    : `${getBackendBaseUrl()}${resume.file_url.startsWith('/') ? '' : '/'}${resume.file_url}`;
 
   const isPdf = resume.file_name.toLowerCase().endsWith('.pdf') || resume.file_url.toLowerCase().includes('.pdf');
 
@@ -65,11 +66,35 @@ const ResumeViewer: React.FC<ResumeViewerProps> = ({ resume }) => {
       <div className="flex-1 bg-slate-50/60 p-4 min-h-[500px] max-h-[550px] overflow-hidden flex flex-col">
         {viewMode === 'document' ? (
           isPdf ? (
-            <iframe
-              src={fileFullUrl}
-              className="w-full h-full min-h-[480px] rounded-xl border border-slate-200 shadow-inner"
-              title={resume.file_name}
-            />
+            <div className="flex flex-col h-full space-y-2">
+              <iframe
+                src={fileFullUrl}
+                className="w-full flex-1 min-h-[460px] rounded-xl border border-slate-200 shadow-inner bg-white"
+                title={resume.file_name}
+              />
+              <div className="flex items-center justify-between px-1 text-[11px] text-slate-400">
+                <span>
+                  Having trouble viewing the PDF preview? Switch to the{' '}
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('text')}
+                    className="text-brand-600 font-bold hover:underline"
+                  >
+                    Text tab
+                  </button>{' '}
+                  above.
+                </span>
+                <a
+                  href={fileFullUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-600 font-semibold hover:underline flex items-center gap-1 shrink-0 ml-2"
+                >
+                  <ExternalLink size={12} />
+                  <span>Open Document</span>
+                </a>
+              </div>
+            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">
               <FileText size={40} className="mb-2.5 text-slate-300" />
