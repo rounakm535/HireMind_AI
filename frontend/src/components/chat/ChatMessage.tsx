@@ -15,14 +15,25 @@ const formatMessageText = (text: string) => {
         return parsed.questions
           .map(
             (q: any, i: number) =>
-              `${i + 1}. ${q.question}\n   *Expected Answer*: ${q.expected_answer || 'N/A'}${q.category ? ` (${q.category})` : ''}`
+              `${i + 1}. **${q.question}**\n   • *Expected Answer*: ${q.expected_answer || 'N/A'}${q.category ? `\n   • *Category*: ${q.category}` : ''}`
           )
           .join('\n\n');
+      }
+      if (parsed.score !== undefined) {
+        return `### 🎯 Candidate Match Assessment\n\n• **Match Score:** ${parsed.score}%\n• **Recommendation:** ${parsed.hiring_recommendation || 'Recommended for technical evaluation'}\n• **Matching Skills:** ${(parsed.matching_skills || []).join(', ') || 'Core engineering competencies'}\n• **Skill Gaps:** ${(parsed.missing_skills || []).join(', ') || 'None identified'}\n• **Experience Match:** ${parsed.experience_match || 'Experience demonstrates required qualifications.'}`;
+      }
+      if (parsed.missing_skills || parsed.strengths || parsed.priority_skills) {
+        return `### 📊 Candidate Skill Gap Analysis\n\n• **Key Strengths:** ${(parsed.strengths || []).join(', ') || 'Solid engineering foundation'}\n• **Priority Skills:** ${(parsed.priority_skills || []).join(', ') || 'Core framework expertise'}\n• **Identified Gaps:** ${(parsed.missing_skills || []).join(', ') || 'None identified'}\n• **Recommended Learning:** ${(parsed.recommended_learning || []).join(', ') || 'Advanced architecture & design patterns'}`;
+      }
+      if (parsed.subject && parsed.body) {
+        return `### 📧 Email Draft\n\n**Subject:** ${parsed.subject}\n\n${parsed.body}`;
       }
       if (Object.keys(parsed).length === 0) {
         return 'Hello! How can I help you evaluate candidates, review skills, or generate interview questions today?';
       }
-      return JSON.stringify(parsed, null, 2);
+      return Object.entries(parsed)
+        .map(([k, v]) => `• **${k.replace(/_/g, ' ').toUpperCase()}**: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
+        .join('\n');
     } catch {
       return text;
     }

@@ -294,17 +294,59 @@ class ResumeService:
         return await self.resume_repo.create_email_log(email_log)
 
     async def chat_helper(self, query: str, organization_id: Optional[uuid.UUID]) -> str:
-        # Load contextual candidates for this query
-        context_str = "Available Candidates:\n"
+        candidates_context = []
+        jobs_context = []
+
         if organization_id:
-            candidates, _ = await self.candidate_repo.list_candidates(
-                organization_id, skip=0, limit=10
-            )
-            for c in candidates:
-                skills = ", ".join([cs.skill.name for cs in (c.candidate_skills or [])])
-                context_str += f"- {c.first_name} {c.last_name} (Email: {c.email}, Status: {c.status.value}, Skills: {skills})\n"
+            # Load active job openings
+            try:
+                jobs, _ = await self.job_repo.list_jobs(organization_id, skip=0, limit=10)
+                for j in jobs:
+                    req_snippet = (j.requirements or "")[:250].replace("\n", " ")
+                    jobs_context.append(
+                        f"- Job: {j.title} | Status: {j.status.value} | Type: {j.job_type.value} | Location: {j.location} | Requirements: {req_snippet}"
+                    )
+            except Exception as e:
+                jobs_context.append(f"- (Jobs lookup warning: {e})")
+
+            # Load candidate profiles
+            try:
+                candidates, _ = await self.candidate_repo.list_candidates(
+                    organization_id, skip=0, limit=20
+                )
+                for c in candidates:
+                    skills_list = [cs.skill.name for cs in (c.candidate_skills or []) if cs.skill]
+                    skills = ", ".join(skills_list) if skills_list else "General Engineering"
+
+                    score_detail = ""
+                    if c.match_scores:
+                        top_score = max([ms.score for ms in c.match_scores])
+                        score_detail = f" | Match Score: {top_score}%"
+
+                    summary_detail = ""
+                    if c.resumes:
+                        latest_resume = c.resumes[0]
+                        if latest_resume.summary:
+                            summary_detail = f" | Summary: {latest_resume.summary[:200]}"
+                        elif latest_resume.raw_text:
+                            summary_detail = f" | Excerpt: {latest_resume.raw_text[:200].strip()}..."
+
+                    candidates_context.append(
+                        f"- {c.first_name} {c.last_name} (Email: {c.email}, Status: {c.status.value}, Skills: [{skills}]{score_detail}{summary_detail})"
+                    )
+            except Exception as e:
+                candidates_context.append(f"- (Candidate lookup warning: {e})")
+
+        context_str = "RECRUITING PIPELINE CONTEXT:\n\n"
+        if jobs_context:
+            context_str += "Open Job Requisitions:\n" + "\n".join(jobs_context) + "\n\n"
         else:
-            context_str += "(No candidates found — user has no organization assigned.)\n"
+            context_str += "Open Job Requisitions: None currently posted\n\n"
+
+        if candidates_context:
+            context_str += "Available Candidates in Pipeline:\n" + "\n".join(candidates_context) + "\n"
+        else:
+            context_str += "Available Candidates in Pipeline: (No candidates uploaded yet)\n"
 
         return await self.gemini_client.chat_interaction(query, context_str)
 
