@@ -95,9 +95,12 @@ HireMind AI is fully containerized with **Docker Compose**, including PostgreSQL
    - `GEMINI_API_KEY`: Google Gemini AI API key.
    - `SECRET_KEY`: Random 32+ character JWT secret string.
 4. Create a static web app for `frontend/` on **Render** or **Vercel**:
+   - Framework Preset: `Vite`
+   - Root Directory: `frontend` (or repository root)
    - Build Command: `npm run build`
    - Output Directory: `dist`
    - Environment Variable: `VITE_API_BASE_URL=https://your-backend-service.onrender.com/api/v1`
+   - *Note on SPA Routing*: A `vercel.json` file is included with `rewrites` to `/index.html` to prevent 404 errors when directly accessing routes like `/login` or refreshing the page.
 
 ---
 
