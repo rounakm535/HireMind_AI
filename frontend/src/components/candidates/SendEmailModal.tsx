@@ -128,7 +128,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
   if (!candidate) return null;
 
   const mailtoUrl = `mailto:${candidate.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(candidate.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const gmailUrl = `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(candidate.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Send Email Directly" size="lg">

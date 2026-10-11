@@ -22,7 +22,8 @@ const EmailPreview: React.FC<EmailPreviewProps> = ({ email }) => {
   };
 
   const mailtoUrl = `mailto:${email.recipient_email}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}`;
-  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email.recipient_email)}&su=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}`;
+  const senderEmail = 'hiremindrecruitingteam@gmail.com';
+  const gmailUrl = `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(email.recipient_email)}&su=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}`;
 
   return (
     <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden font-sans">

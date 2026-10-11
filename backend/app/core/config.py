@@ -84,5 +84,9 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = "hiremindrecruitingteam@gmail.com"
     SMTP_FROM_NAME: str = "HireMind Recruiting Team"
 
+    # HTTPS Transactional Email API (Bypasses cloud host SMTP port blocks)
+    BREVO_API_KEY: Optional[str] = None
+    RESEND_API_KEY: Optional[str] = None
+
 
 settings = Settings()

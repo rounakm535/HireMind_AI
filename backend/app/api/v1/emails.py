@@ -71,7 +71,71 @@ def dispatch_smtp(recipient_email: str, subject: str, body: str) -> tuple[bool, 
             logger.warning(f"SMTP delivery warning for {recipient_email}: {err_msg}")
             errors.append(err_msg)
 
-    return False, " | ".join(errors)
+def dispatch_https_api(recipient_email: str, subject: str, body: str) -> tuple[bool, Optional[str]]:
+    """Send via Brevo or Resend over HTTPS port 443 (never blocked by cloud firewalls)."""
+    import urllib.request
+    import json
+
+    if settings.BREVO_API_KEY:
+        try:
+            req = urllib.request.Request(
+                "https://api.brevo.com/v3/smtp/email",
+                data=json.dumps({
+                    "sender": {"name": settings.SMTP_FROM_NAME, "email": settings.SMTP_FROM_EMAIL},
+                    "to": [{"email": recipient_email}],
+                    "subject": subject,
+                    "textContent": body,
+                }).encode(),
+                headers={
+                    "api-key": settings.BREVO_API_KEY,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status in (200, 201):
+                    logger.info(f"Dispatched email to {recipient_email} via Brevo HTTPS API")
+                    return True, None
+        except Exception as e:
+            err_msg = f"Brevo API: {e}"
+            logger.warning(f"Brevo error for {recipient_email}: {err_msg}")
+            return False, err_msg
+
+    if settings.RESEND_API_KEY:
+        try:
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=json.dumps({
+                    "from": f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>",
+                    "to": [recipient_email],
+                    "subject": subject,
+                    "text": body,
+                }).encode(),
+                headers={
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status in (200, 201):
+                    logger.info(f"Dispatched email to {recipient_email} via Resend HTTPS API")
+                    return True, None
+        except Exception as e:
+            err_msg = f"Resend API: {e}"
+            logger.warning(f"Resend error for {recipient_email}: {err_msg}")
+            return False, err_msg
+
+    return False, "No HTTPS email provider configured."
+
+
+def dispatch_email(recipient_email: str, subject: str, body: str) -> tuple[bool, Optional[str]]:
+    """Dispatch email using HTTPS API if available, falling back to direct SMTP."""
+    if settings.BREVO_API_KEY or settings.RESEND_API_KEY:
+        success, err = dispatch_https_api(recipient_email, subject, body)
+        if success:
+            return True, None
+
+    return dispatch_smtp(recipient_email, subject, body)
 
 
 @router.post("/generate", response_model=EmailLogResponse, status_code=status.HTTP_201_CREATED)
@@ -102,9 +166,9 @@ async def send_direct_email(
 
     import asyncio
     loop = asyncio.get_running_loop()
-    # Attempt real SMTP transmission
+    # Attempt real email transmission (HTTPS API or SMTP)
     success, error_detail = await loop.run_in_executor(
-        None, lambda: dispatch_smtp(request.recipient_email, request.subject, request.body)
+        None, lambda: dispatch_email(request.recipient_email, request.subject, request.body)
     )
 
     status_str = "SENT" if success else "FAILED"
