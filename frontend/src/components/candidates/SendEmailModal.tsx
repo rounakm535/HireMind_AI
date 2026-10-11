@@ -28,6 +28,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
   const [copied, setCopied] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gmailAccountIndex, setGmailAccountIndex] = useState<number>(3);
 
   const senderEmail = 'hiremindrecruitingteam@gmail.com';
 
@@ -128,7 +129,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
   if (!candidate) return null;
 
   const mailtoUrl = `mailto:${candidate.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  const gmailUrl = `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(candidate.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const gmailUrl = `https://mail.google.com/mail/u/${gmailAccountIndex}/?view=cm&fs=1&to=${encodeURIComponent(candidate.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}&authuser=${gmailAccountIndex}`;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Send Email Directly" size="lg">
@@ -142,9 +143,24 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
             </span>
             <span className="text-slate-400 font-medium">({candidate.email})</span>
           </div>
-          <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+          <div className="flex flex-wrap items-center gap-2 text-slate-500 text-[11px]">
             <span className="text-slate-400">From:</span>
             <span className="font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md">{senderEmail}</span>
+            <div className="flex items-center gap-1 ml-1 bg-white border border-slate-200 rounded px-1.5 py-0.5 shadow-2xs">
+              <span className="text-slate-400 text-[10px]">Profile:</span>
+              <select
+                value={gmailAccountIndex}
+                onChange={(e) => setGmailAccountIndex(Number(e.target.value))}
+                className="bg-transparent text-slate-700 font-bold text-[10px] cursor-pointer focus:outline-none"
+                title="Select Google Account index in your browser (u/3 = 4th account)"
+              >
+                <option value={3}>mail/u/3 (HireMind)</option>
+                <option value={0}>mail/u/0 (Default)</option>
+                <option value={1}>mail/u/1</option>
+                <option value={2}>mail/u/2</option>
+                <option value={4}>mail/u/4</option>
+              </select>
+            </div>
           </div>
         </div>
 

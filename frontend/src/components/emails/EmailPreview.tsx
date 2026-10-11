@@ -10,6 +10,7 @@ interface EmailPreviewProps {
 const EmailPreview: React.FC<EmailPreviewProps> = ({ email }) => {
   const [copied, setCopied] = useState(false);
   const [bodyText, setBodyText] = useState(email.body || '');
+  const [gmailAccountIndex, setGmailAccountIndex] = useState<number>(3);
 
   useEffect(() => {
     setBodyText(email.body || '');
@@ -23,7 +24,7 @@ const EmailPreview: React.FC<EmailPreviewProps> = ({ email }) => {
 
   const mailtoUrl = `mailto:${email.recipient_email}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}`;
   const senderEmail = 'hiremindrecruitingteam@gmail.com';
-  const gmailUrl = `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(senderEmail)}&view=cm&fs=1&to=${encodeURIComponent(email.recipient_email)}&su=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}`;
+  const gmailUrl = `https://mail.google.com/mail/u/${gmailAccountIndex}/?view=cm&fs=1&to=${encodeURIComponent(email.recipient_email)}&su=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}&authuser=${gmailAccountIndex}`;
 
   return (
     <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden font-sans">
@@ -37,6 +38,21 @@ const EmailPreview: React.FC<EmailPreviewProps> = ({ email }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-2 h-8 shadow-2xs">
+            <span className="text-slate-400 text-[10px]">Profile:</span>
+            <select
+              value={gmailAccountIndex}
+              onChange={(e) => setGmailAccountIndex(Number(e.target.value))}
+              className="bg-transparent text-slate-700 font-bold text-xs cursor-pointer focus:outline-none"
+              title="Select Google Account index in your browser (u/3 = 4th account)"
+            >
+              <option value={3}>mail/u/3</option>
+              <option value={0}>mail/u/0</option>
+              <option value={1}>mail/u/1</option>
+              <option value={2}>mail/u/2</option>
+              <option value={4}>mail/u/4</option>
+            </select>
+          </div>
           <a
             href={gmailUrl}
             target="_blank"
