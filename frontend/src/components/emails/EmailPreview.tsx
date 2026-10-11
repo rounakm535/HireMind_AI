@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { EmailLog } from '../../types';
 import Button from '../common/Button';
-import { Mail, Copy, Check } from 'lucide-react';
+import { Mail, Copy, Check, ExternalLink } from 'lucide-react';
 
 interface EmailPreviewProps {
   email: EmailLog;
@@ -21,10 +21,13 @@ const EmailPreview: React.FC<EmailPreviewProps> = ({ email }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const mailtoUrl = `mailto:${email.recipient_email}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}`;
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email.recipient_email)}&su=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(bodyText)}`;
+
   return (
     <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden font-sans">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
         <div className="flex items-center gap-2.5">
           <Mail className="text-brand-500" size={18} />
           <span className="text-[13px] font-bold text-slate-800 tracking-tight leading-none">
@@ -32,8 +35,28 @@ const EmailPreview: React.FC<EmailPreviewProps> = ({ email }) => {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5 h-8">
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={gmailUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100/80 text-red-700 rounded-lg text-xs font-bold h-8 transition shadow-xs"
+            title="Open draft directly in Gmail web composer"
+          >
+            <ExternalLink size={13} />
+            <span>Send via Gmail</span>
+          </a>
+          <a
+            href={mailtoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:border-slate-300 rounded-lg text-slate-600 hover:text-slate-800 text-xs font-semibold h-8 transition"
+            title="Open draft in your default email application"
+          >
+            <ExternalLink size={13} />
+            <span>Mail App</span>
+          </a>
+          <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5 h-8 text-xs">
             {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
           </Button>

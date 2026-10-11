@@ -92,19 +92,24 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
     setSending(true);
     setError(null);
     try {
-      await resumeApi.sendEmail({
+      const res = await resumeApi.sendEmail({
         candidateId: candidate.id,
         recipientEmail: candidate.email,
         subject: subject || 'Application Update',
         body: body,
       });
+      if (res.status === 'FAILED') {
+        setError('SMTP delivery failed on the backend. You can use the "Send via Gmail" or "Open in Mail App" button below to dispatch directly.');
+        return;
+      }
       setSentSuccess(true);
       setTimeout(() => {
         onClose();
         setSentSuccess(false);
-      }, 1500);
+      }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to record sent email.');
+      const msg = err.response?.data?.detail || err.response?.data?.error?.message || 'SMTP delivery failed on server. Cloud hosting platforms often block outbound SMTP.';
+      setError(msg);
     } finally {
       setSending(false);
     }
@@ -123,6 +128,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
   if (!candidate) return null;
 
   const mailtoUrl = `mailto:${candidate.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(candidate.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Send Email Directly" size="lg">
@@ -200,21 +206,56 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
           />
         </div>
 
-        {error && <p className="text-xs font-semibold text-red-500">{error}</p>}
+        {error && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl p-3.5 space-y-2">
+            <p className="font-medium leading-relaxed">{error}</p>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <a
+                href={gmailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs shadow-xs transition"
+              >
+                <ExternalLink size={13} />
+                <span>Send via Gmail</span>
+              </a>
+              <a
+                href={mailtoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100/60 text-amber-900 rounded-lg font-semibold text-xs transition"
+              >
+                <ExternalLink size={13} />
+                <span>Open in Mail App</span>
+              </a>
+            </div>
+          </div>
+        )}
+
         {sentSuccess && (
           <div className="bg-green-50 border border-green-200 text-green-700 text-xs font-bold rounded-xl p-3 flex items-center gap-2">
             <Check size={16} />
-            <span>Email sent and logged successfully from {senderEmail}!</span>
+            <span>Email sent and delivered successfully from {senderEmail}!</span>
           </div>
         )}
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5 h-9 text-xs">
               {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-              <span>{copied ? 'Copied!' : 'Copy Text'}</span>
+              <span>{copied ? 'Copied!' : 'Copy'}</span>
             </Button>
+            <a
+              href={gmailUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100/80 text-red-700 rounded-lg text-xs font-bold h-9 transition shadow-xs"
+              title="Open pre-filled draft directly in Gmail web composer"
+            >
+              <ExternalLink size={14} />
+              <span>Send via Gmail</span>
+            </a>
             <a
               href={mailtoUrl}
               target="_blank"
@@ -223,7 +264,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
               title="Open draft in your default email application"
             >
               <ExternalLink size={14} />
-              <span>Open in Mail App</span>
+              <span>Mail App</span>
             </a>
           </div>
 
@@ -239,7 +280,7 @@ const SendEmailModal: React.FC<SendEmailModalProps> = ({ isOpen, onClose, candid
               className="gap-1.5 h-9 font-bold"
             >
               <Send size={14} />
-              <span>Send & Log Email</span>
+              <span>Send via SMTP</span>
             </Button>
           </div>
         </div>

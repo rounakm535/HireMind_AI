@@ -5,7 +5,7 @@ import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from pydantic import BaseModel
 from app.schemas.resume import EmailLogResponse
 from app.dependencies.auth import get_resume_service, RoleChecker
@@ -35,10 +35,10 @@ class EmailSendRequest(BaseModel):
     body: str
 
 
-def dispatch_smtp(recipient_email: str, subject: str, body: str) -> bool:
-    """Helper function to dispatch email over SMTP if credentials are valid."""
+def dispatch_smtp(recipient_email: str, subject: str, body: str) -> tuple[bool, Optional[str]]:
+    """Helper function to dispatch email over SMTP if credentials are valid, trying both 465 and 587."""
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        return False
+        return False, "SMTP user or app password not configured."
 
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
@@ -46,24 +46,32 @@ def dispatch_smtp(recipient_email: str, subject: str, body: str) -> bool:
     message["To"] = recipient_email
     message.attach(MIMEText(body, "plain"))
 
-    try:
-        context = ssl.create_default_context()
-        if settings.SMTP_PORT == 465:
-            with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context) as server:
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.sendmail(settings.SMTP_FROM_EMAIL, recipient_email, message.as_string())
-        else:
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                server.ehlo()
-                server.starttls(context=context)
-                server.ehlo()
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.sendmail(settings.SMTP_FROM_EMAIL, recipient_email, message.as_string())
-        logger.info(f"Successfully dispatched real SMTP email to {recipient_email}")
-        return True
-    except Exception as e:
-        logger.warning(f"SMTP delivery warning for {recipient_email}: {e}")
-        return False
+    errors = []
+    ports = [465, 587] if settings.SMTP_PORT == 465 else [settings.SMTP_PORT, 465]
+    ports = list(dict.fromkeys(ports))
+
+    context = ssl.create_default_context()
+    for port in ports:
+        try:
+            if port == 465:
+                with smtplib.SMTP_SSL(settings.SMTP_HOST, port, context=context, timeout=8) as server:
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                    server.sendmail(settings.SMTP_FROM_EMAIL, recipient_email, message.as_string())
+            else:
+                with smtplib.SMTP(settings.SMTP_HOST, port, timeout=8) as server:
+                    server.ehlo()
+                    server.starttls(context=context)
+                    server.ehlo()
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                    server.sendmail(settings.SMTP_FROM_EMAIL, recipient_email, message.as_string())
+            logger.info(f"Successfully dispatched real SMTP email to {recipient_email} via port {port}")
+            return True, None
+        except Exception as e:
+            err_msg = f"Port {port}: {type(e).__name__} ({str(e)})"
+            logger.warning(f"SMTP delivery warning for {recipient_email}: {err_msg}")
+            errors.append(err_msg)
+
+    return False, " | ".join(errors)
 
 
 @router.post("/generate", response_model=EmailLogResponse, status_code=status.HTTP_201_CREATED)
@@ -95,15 +103,24 @@ async def send_direct_email(
     import asyncio
     loop = asyncio.get_running_loop()
     # Attempt real SMTP transmission
-    await loop.run_in_executor(
+    success, error_detail = await loop.run_in_executor(
         None, lambda: dispatch_smtp(request.recipient_email, request.subject, request.body)
     )
 
+    status_str = "SENT" if success else "FAILED"
     email_log = EmailLog(
         sender_id=current_user.id,
         recipient_email=request.recipient_email,
         subject=request.subject,
         body=request.body,
-        status="SENT",
+        status=status_str,
     )
-    return await resume_service.resume_repo.create_email_log(email_log)
+    saved_log = await resume_service.resume_repo.create_email_log(email_log)
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Email dispatch failed ({error_detail}). Cloud hosting providers like Render often block outbound SMTP. Please use 'Send via Gmail' or 'Open in Mail App' to dispatch directly."
+        )
+
+    return saved_log

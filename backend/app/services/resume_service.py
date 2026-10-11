@@ -289,7 +289,7 @@ class ResumeService:
             recipient_email=candidate.email,
             subject=email_data.get("subject", f"Update on your application for {job.title}"),
             body=body_text,
-            status="SENT",
+            status="DRAFT",
         )
         return await self.resume_repo.create_email_log(email_log)
 
