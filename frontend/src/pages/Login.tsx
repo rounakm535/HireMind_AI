@@ -36,6 +36,7 @@ const Login: React.FC = () => {
   const {
     register: registerLogin,
     handleSubmit: handleSubmitLogin,
+    setValue: setValueLogin,
     formState: { errors: loginErrors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -167,6 +168,36 @@ const Login: React.FC = () => {
         ) : (
           /* Login Form */
           <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-4">
+            {/* Quick Fill Demo Credentials */}
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
+              <div className="text-[11px] font-semibold text-slate-500 mb-2 flex items-center justify-between">
+                <span>Quick Fill Credentials:</span>
+                <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">Ready</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValueLogin('email', 'mishra.rounak15@gmail.com', { shouldValidate: true });
+                    setValueLogin('password', 'Rounak@1879', { shouldValidate: true });
+                  }}
+                  className="py-1.5 px-2 bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-xl text-[11px] font-medium text-slate-700 hover:text-brand-700 transition flex items-center justify-center gap-1 shadow-2xs"
+                >
+                  <span>👤 Rounak (Admin)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValueLogin('email', 'rony.test@gmail.com', { shouldValidate: true });
+                    setValueLogin('password', 'Admin@1234', { shouldValidate: true });
+                  }}
+                  className="py-1.5 px-2 bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-xl text-[11px] font-medium text-slate-700 hover:text-brand-700 transition flex items-center justify-center gap-1 shadow-2xs"
+                >
+                  <span>👤 Demo Recruiter</span>
+                </button>
+              </div>
+            </div>
+
             <Input
               label="Email Address"
               type="email"

@@ -27,27 +27,41 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "hiremind_db"
     DATABASE_URL: Optional[str] = None
 
+    # Persistent Default Admin Credentials
+    ADMIN_EMAIL: str = "mishra.rounak15@gmail.com"
+    ADMIN_PASSWORD: str = "Rounak@1879"
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> Any:
         data = info.data
-        if not data.get("USE_POSTGRES"):
-            if isinstance(v, str) and v:
-                if v.startswith("sqlite+aiosqlite:///./"):
-                    db_filename = v.replace("sqlite+aiosqlite:///./", "")
-                    db_path = (BASE_DIR / db_filename).resolve().as_posix()
-                    return f"sqlite+aiosqlite:///{db_path}"
-                return v
-            db_path = (BASE_DIR / "hiremind_db.sqlite").resolve().as_posix()
-            return f"sqlite+aiosqlite:///{db_path}"
-        if isinstance(v, str) and v:
-            return v
-        user = data.get("POSTGRES_USER")
-        password = data.get("POSTGRES_PASSWORD")
-        server = data.get("POSTGRES_SERVER")
-        port = data.get("POSTGRES_PORT")
-        db = data.get("POSTGRES_DB")
-        return f"postgresql+asyncpg://{user}:{password}@{server}:{port}/{db}"
+
+        # 1. If explicit DATABASE_URL is provided (e.g. Render / Neon / Supabase / Railway)
+        if isinstance(v, str) and v.strip():
+            url = v.strip()
+            # Normalize standard Postgres URLs to asyncpg
+            if url.startswith("postgres://"):
+                return url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+                return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif url.startswith("sqlite+aiosqlite:///./"):
+                db_filename = url.replace("sqlite+aiosqlite:///./", "")
+                db_path = (BASE_DIR / db_filename).resolve().as_posix()
+                return f"sqlite+aiosqlite:///{db_path}"
+            return url
+
+        # 2. If USE_POSTGRES is set with individual components
+        if data.get("USE_POSTGRES"):
+            user = data.get("POSTGRES_USER", "postgres")
+            password = data.get("POSTGRES_PASSWORD", "postgres")
+            server = data.get("POSTGRES_SERVER", "localhost")
+            port = data.get("POSTGRES_PORT", 5432)
+            db = data.get("POSTGRES_DB", "hiremind_db")
+            return f"postgresql+asyncpg://{user}:{password}@{server}:{port}/{db}"
+
+        # 3. Default fallback to local SQLite
+        db_path = (BASE_DIR / "hiremind_db.sqlite").resolve().as_posix()
+        return f"sqlite+aiosqlite:///{db_path}"
 
     # JWT Configuration
     SECRET_KEY: str = "supersecretaccesskeyforhiremindai"

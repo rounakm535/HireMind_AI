@@ -2,56 +2,93 @@ import logging
 import uuid
 from sqlalchemy import select
 from app.db.database import AsyncSessionLocal
+from app.core.config import settings
 from app.models.organization import Organization
 from app.models.user import User, UserRole
 from app.models.job import Job, JobType, JobStatus
 from app.models.candidate import Candidate, CandidateStatus, CandidateSkill
 from app.models.skill import Skill
-from app.models.resume import Resume
+from app.models.resume import Resume, InterviewQuestion
 from app.models.match import MatchScore
 from app.core.security import get_password_hash
 
 logger = logging.getLogger(__name__)
 
 DEMO_ORG_NAME = "HireMind AI Technologies"
+PRIMARY_ADMIN_EMAIL = getattr(settings, "ADMIN_EMAIL", "mishra.rounak15@gmail.com")
+PRIMARY_ADMIN_PASSWORD = getattr(settings, "ADMIN_PASSWORD", "Rounak@1879")
 DEMO_USER_EMAIL = "rony.test@gmail.com"
 DEMO_USER_PASSWORD = "Admin@1234"
 
+
 async def seed_demo_data_if_needed():
-    """Seed sample organization, user, open jobs, and candidates if database is empty."""
+    """Seed sample organization, persistent admin user, demo user, open jobs, and candidates."""
     async with AsyncSessionLocal() as session:
         try:
-            # Check if demo user already exists
-            user_stmt = select(User).where(User.email == DEMO_USER_EMAIL)
-            result = await session.execute(user_stmt)
-            existing_user = result.scalars().first()
+            # 1. Ensure Organization exists
+            org_stmt = select(Organization).where(Organization.name == DEMO_ORG_NAME)
+            result = await session.execute(org_stmt)
+            org = result.scalars().first()
+            if not org:
+                org = Organization(id=uuid.uuid4(), name=DEMO_ORG_NAME)
+                session.add(org)
+                await session.flush()
 
-            if existing_user:
-                logger.info("Demo user already exists. Skipping database seeding.")
+            # 2. Ensure Primary Admin User exists
+            admin_stmt = select(User).where(User.email == PRIMARY_ADMIN_EMAIL)
+            admin_result = await session.execute(admin_stmt)
+            admin_user = admin_result.scalars().first()
+            if not admin_user:
+                logger.info(f"Seeding primary admin user: {PRIMARY_ADMIN_EMAIL}")
+                admin_user = User(
+                    id=uuid.uuid4(),
+                    email=PRIMARY_ADMIN_EMAIL,
+                    hashed_password=get_password_hash(PRIMARY_ADMIN_PASSWORD),
+                    first_name="Rounak",
+                    last_name="Mishra",
+                    role=UserRole.ADMIN,
+                    organization_id=org.id,
+                    is_active=True,
+                )
+                session.add(admin_user)
+            else:
+                admin_user.hashed_password = get_password_hash(PRIMARY_ADMIN_PASSWORD)
+                admin_user.is_active = True
+
+            # 3. Ensure Demo User exists
+            demo_stmt = select(User).where(User.email == DEMO_USER_EMAIL)
+            demo_result = await session.execute(demo_stmt)
+            demo_user = demo_result.scalars().first()
+            if not demo_user:
+                logger.info(f"Seeding demo recruiter user: {DEMO_USER_EMAIL}")
+                demo_user = User(
+                    id=uuid.uuid4(),
+                    email=DEMO_USER_EMAIL,
+                    hashed_password=get_password_hash(DEMO_USER_PASSWORD),
+                    first_name="Rony",
+                    last_name="Mishra",
+                    role=UserRole.RECRUITER,
+                    organization_id=org.id,
+                    is_active=True,
+                )
+                session.add(demo_user)
+            else:
+                demo_user.is_active = True
+
+            # Commit users immediately so authentication never fails
+            await session.commit()
+            logger.info("Admin and demo users verified and committed.")
+
+            # 4. Check if demo jobs or candidates already exist
+            job_check = select(Job).limit(1)
+            job_res = await session.execute(job_check)
+            if job_res.scalars().first():
+                logger.info("Sample jobs and candidates already exist. Skipping demo data creation.")
                 return
 
-            logger.info("Seeding demo organization, jobs, and candidates...")
+            logger.info("Seeding demo skills, jobs, and candidates...")
 
-            # 1. Create Organization
-            org = Organization(id=uuid.uuid4(), name=DEMO_ORG_NAME)
-            session.add(org)
-            await session.flush()
-
-            # 2. Create Demo User
-            user = User(
-                id=uuid.uuid4(),
-                email=DEMO_USER_EMAIL,
-                hashed_password=get_password_hash(DEMO_USER_PASSWORD),
-                first_name="Rony",
-                last_name="Mishra",
-                role=UserRole.ADMIN,
-                organization_id=org.id,
-                is_active=True,
-            )
-            session.add(user)
-            await session.flush()
-
-            # 3. Create Skills
+            # 5. Create Skills
             skills_data = [
                 "Python", "FastAPI", "React", "TypeScript", "PostgreSQL",
                 "Redis", "Docker", "AWS", "Machine Learning", "System Design",
@@ -59,12 +96,17 @@ async def seed_demo_data_if_needed():
             ]
             skill_map = {}
             for s_name in skills_data:
-                sk = Skill(id=uuid.uuid4(), name=s_name)
-                session.add(sk)
-                skill_map[s_name] = sk
+                sk_stmt = select(Skill).where(Skill.name == s_name)
+                existing_sk = (await session.execute(sk_stmt)).scalars().first()
+                if existing_sk:
+                    skill_map[s_name] = existing_sk
+                else:
+                    sk = Skill(id=uuid.uuid4(), name=s_name)
+                    session.add(sk)
+                    skill_map[s_name] = sk
             await session.flush()
 
-            # 4. Create Jobs
+            # 6. Create Jobs
             job1 = Job(
                 id=uuid.uuid4(),
                 organization_id=org.id,
@@ -98,7 +140,7 @@ async def seed_demo_data_if_needed():
             session.add_all([job1, job2, job3])
             await session.flush()
 
-            # 5. Create Candidates with Resumes & AI Matches
+            # 7. Create Candidates
             c1 = Candidate(
                 id=uuid.uuid4(),
                 organization_id=org.id,
@@ -131,62 +173,69 @@ async def seed_demo_data_if_needed():
 
             # Tag Candidate Skills
             for sk_name in ["Python", "FastAPI", "LLMs", "Docker", "PostgreSQL"]:
-                session.add(CandidateSkill(candidate_id=c1.id, skill_id=skill_map[sk_name].id, proficiency="Expert"))
+                if sk_name in skill_map:
+                    session.add(CandidateSkill(candidate_id=c1.id, skill_id=skill_map[sk_name].id, proficiency="Expert"))
             for sk_name in ["React", "TypeScript", "Python", "FastAPI"]:
-                session.add(CandidateSkill(candidate_id=c2.id, skill_id=skill_map[sk_name].id, proficiency="Advanced"))
+                if sk_name in skill_map:
+                    session.add(CandidateSkill(candidate_id=c2.id, skill_id=skill_map[sk_name].id, proficiency="Advanced"))
             for sk_name in ["Docker", "AWS", "Kubernetes", "Redis"]:
-                session.add(CandidateSkill(candidate_id=c3.id, skill_id=skill_map[sk_name].id, proficiency="Expert"))
+                if sk_name in skill_map:
+                    session.add(CandidateSkill(candidate_id=c3.id, skill_id=skill_map[sk_name].id, proficiency="Expert"))
             await session.flush()
 
-            # Add Resumes
+            # 8. Add Resumes
             r1 = Resume(
                 id=uuid.uuid4(),
                 candidate_id=c1.id,
-                file_path="uploads/demo_alex_rivers.pdf",
+                file_url="/uploads/demo_alex_rivers.pdf",
                 file_name="Alex_Rivers_Resume.pdf",
                 raw_text="Alex Rivers - Senior AI & LLM Specialist with 6 years experience in Python, FastAPI, LangGraph, Qdrant vector databases, PyTorch, and deploying custom LLM models on AWS.",
-                parsed_json={
+                summary="Experienced AI Systems Architect focused on LLM RAG pipelines and vector database optimization.",
+                parsed_content={
                     "name": "Alex Rivers",
                     "email": "alex.rivers@example.com",
                     "skills": ["Python", "FastAPI", "LLMs", "LangChain", "Qdrant", "Docker", "AWS"],
                     "experience_years": 6,
                     "summary": "Experienced AI Systems Architect focused on LLM RAG pipelines and vector database optimization."
                 },
-                interview_questions={
-                    "questions": [
-                        {
-                            "question": "How do you optimize vector database retrieval speeds for high-dimensional embedding search?",
-                            "expected_answer": "Discuss HNSW index tuning, quantization techniques (PQ/SQ), and payload filtering.",
-                            "category": "Technical",
-                            "difficulty_level": "Senior"
-                        },
-                        {
-                            "question": "Can you explain your approach to handling multi-turn conversational memory in LangGraph/LLM pipelines?",
-                            "expected_answer": "Should detail checkpointing, state management, and context window compression.",
-                            "category": "Architecture",
-                            "difficulty_level": "Senior"
-                        }
-                    ]
-                }
             )
             r2 = Resume(
                 id=uuid.uuid4(),
                 candidate_id=c2.id,
-                file_path="uploads/demo_sophia_chen.pdf",
+                file_url="/uploads/demo_sophia_chen.pdf",
                 file_name="Sophia_Chen_Resume.pdf",
                 raw_text="Sophia Chen - Full-Stack Developer with 4 years hands-on experience building web applications with React, TypeScript, Redux Toolkit, Tailwind CSS, Python FastAPI, and PostgreSQL.",
-                parsed_json={
+                summary="Product-focused full-stack developer with strong UI/UX design sensibilities and clean API architecture skills.",
+                parsed_content={
                     "name": "Sophia Chen",
                     "email": "sophia.chen@example.com",
                     "skills": ["React", "TypeScript", "Python", "FastAPI", "Tailwind CSS", "PostgreSQL"],
                     "experience_years": 4,
                     "summary": "Product-focused full-stack developer with strong UI/UX design sensibilities and clean API architecture skills."
-                }
+                },
             )
             session.add_all([r1, r2])
             await session.flush()
 
-            # Add Match Scores
+            # Add Interview Questions
+            q1 = InterviewQuestion(
+                id=uuid.uuid4(),
+                resume_id=r1.id,
+                question="How do you optimize vector database retrieval speeds for high-dimensional embedding search?",
+                expected_answer="Discuss HNSW index tuning, quantization techniques (PQ/SQ), and payload filtering.",
+                category="Technical",
+            )
+            q2 = InterviewQuestion(
+                id=uuid.uuid4(),
+                resume_id=r1.id,
+                question="Can you explain your approach to handling multi-turn conversational memory in LangGraph/LLM pipelines?",
+                expected_answer="Should detail checkpointing, state management, and context window compression.",
+                category="Architecture",
+            )
+            session.add_all([q1, q2])
+            await session.flush()
+
+            # 9. Add Match Scores
             m1 = MatchScore(
                 id=uuid.uuid4(),
                 job_id=job1.id,
